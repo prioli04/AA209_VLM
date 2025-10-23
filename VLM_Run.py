@@ -5,7 +5,10 @@
 # No dihedral
 # Symmetric airfoil
 
-import VLM
+import VLM.Parameters
+import VLM.Panels
+import VLM.Solver
+import VLM.Wake
 
 b = 2.5 # m
 AR = 5.0 # -
@@ -18,9 +21,8 @@ alfa = 5.0 # °
 params = VLM.Parameters(V_inf, alfa, rho, S, AR)
 
 nx, ny = 3, 4
-mesh = VLM.Mesh(b, AR, nx, ny)
-mesh.plot_mesh()
+panels = VLM.Panels(b, AR, nx, ny, VLM.Wake.Type.Fixed)
 
-solver = VLM.Solver(mesh, params)
+solver = VLM.Solver(panels, params)
 results = solver.solve()
 solver.print_results()

@@ -1,6 +1,7 @@
 from typing import NamedTuple
 import numpy as np
-import VLM
+from .Wing import Wing
+from .Parameters import Parameters
 
 class Post:
     class Result(NamedTuple):
@@ -19,7 +20,7 @@ class Post:
         for f in self._result._fields:
             print(f"{f}: {self._result.__getattribute__(f)}")
 
-    def compute_coefficients(self, mesh: VLM.Mesh, params: VLM.Parameters, Gammas: np.ndarray, w_ind: np.ndarray):
+    def compute_coefficients(self, wing_mesh: Wing, params: Parameters, Gammas: np.ndarray, w_ind: np.ndarray):
         delta_L = np.zeros_like(Gammas)
         delta_D = np.zeros_like(Gammas)
         nx, ny = Gammas.shape
@@ -29,7 +30,7 @@ class Post:
         S = params.S
         AR = params.AR
 
-        _, quarter_chords_y, _ = mesh.get_quarter_chords()
+        _, quarter_chords_y, _ = wing_mesh.get_quarter_chords()
 
         for i in range(nx):
             for j in range(ny):
