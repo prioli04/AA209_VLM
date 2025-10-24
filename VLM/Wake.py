@@ -1,24 +1,45 @@
-from enum import Enum, auto
 import numpy as np
-from .Mesh import Mesh
+import matplotlib.axes
+from .PanelGrid import PanelGrid
 
-class Wake(Mesh):
-    class Type(Enum):
-        Fixed = auto()
-        TimeStepping = auto()
+class Wake(PanelGrid):
+    def __init__(self, nt: int, ny: int):
+        super().__init__(nt, ny)
 
-    def __init__(self, TE_quarter_chords: Mesh.GridVector3, type: Type):
-        if type == Wake.Type.Fixed:
-            points = self._compute_fixed_wake_points(TE_quarter_chords)
-            super().__init__(points)
+    def _update_wake(self):
+        self._compute_control_points(self._C14X, self._C14Y, self._C14Z)
+        self._compute_normals(self._C14X, self._C14Y, self._C14Z)
 
-        elif type == Wake.Type.TimeStepping:
-            pass
+    def plot_mesh(self, ax: matplotlib.axes.Axes):
+        ax.plot_wireframe(self._C14X, self._C14Y, self._C14Z)
+    
+    def add_TE(self, TE_points: PanelGrid.GridVector3):
+        self._C14X[0, :] = TE_points.X
+        self._C14Y[0, :] = TE_points.Y
+        self._C14Z[0, :] = TE_points.Z
 
-    def _compute_fixed_wake_points(self, TE_quarter_chords: Mesh.GridVector3):
-        TE_quarter_chords_x, TE_quarter_chords_y, TE_quarter_chords_z = TE_quarter_chords
-        wake_points_x = np.vstack((TE_quarter_chords_x, TE_quarter_chords_x + 1e6))
-        wake_points_y = np.vstack((TE_quarter_chords_y, TE_quarter_chords_y))
-        wake_points_z = np.vstack((TE_quarter_chords_z, TE_quarter_chords_z))
+    def step_wake(self, it: int, TE_points: PanelGrid.GridVector3, d_wake: np.ndarray):
+        self._C14X[:it + 1, :] += d_wake[0]
+        self._C14Y[:it + 1, :] += d_wake[1]
+        self._C14Z[:it + 1, :] += d_wake[2]
+        
+        self._C14X[1:, :] = self._C14X[:-1, :]
+        self._C14Y[1:, :] = self._C14Y[:-1, :]
+        self._C14Z[1:, :] = self._C14Z[:-1, :]
 
-        return super().GridVector3(wake_points_x, wake_points_y, wake_points_z)
+        self._C14X[0, :] = TE_points.X
+        self._C14Y[0, :] = TE_points.Y
+        self._C14Z[0, :] = TE_points.Z
+
+        # if it != 0:
+        self._update_wake()
+
+    def update_Gammas(self, TE_Gammas: np.ndarray):
+        self._Gammas[1:, :] = self._Gammas[:-1, :]
+        self._Gammas[0, :] = TE_Gammas
+
+    def offset_wake(self, offset_map: PanelGrid.GridVector3):
+        self._C14X += offset_map.X
+        self._C14Y += offset_map.Y
+        self._C14Z += offset_map.Z
+        self._update_wake()

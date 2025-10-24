@@ -1,7 +1,7 @@
 from typing import NamedTuple
 import numpy as np
-from .Wing import Wing
 from .Parameters import Parameters
+from .Wing import Wing
 
 class Post:
     class Result(NamedTuple):
@@ -30,11 +30,11 @@ class Post:
         S = params.S
         AR = params.AR
 
-        _, quarter_chords_y, _ = wing_mesh.get_quarter_chords()
+        _, C14_y, _ = wing_mesh.get_C14()
 
         for i in range(nx):
             for j in range(ny):
-                delta_y = np.abs(quarter_chords_y[i, j + 1] - quarter_chords_y[i, j])
+                delta_y = np.abs(C14_y[i, j + 1] - C14_y[i, j])
                 delta_Gamma = Gammas[i, j] - Gammas[i - 1, j] if i != 0 else Gammas[i, j]
 
                 delta_L[i, j] = rho * V_inf * delta_Gamma * delta_y

@@ -1,4 +1,4 @@
-from VLM.Mesh import Mesh
+from VLM.PanelGrid import PanelGrid
 from VLM.Panels import Panels
 from VLM.Parameters import Parameters
 from VLM.Post import Post

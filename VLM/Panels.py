@@ -1,4 +1,4 @@
-from .Mesh import Mesh
+import matplotlib.pyplot as plt
 from .Wake import Wake
 from .Wing import Wing
 
@@ -8,16 +8,25 @@ class Panels:
             b: float,
             AR: float, 
             nx: int, 
-            ny: int, 
-            wake_type: Wake.Type):
+            ny: int,
+            wake_dx: float,
+            nt: int):
         
-        self._wing_mesh = Wing(b, AR, nx, ny)
-        wing_C14 = self._wing_mesh.get_quarter_chords()
-        TE_quarter_chords = Mesh.GridVector3(wing_C14.X[-1,:], wing_C14.Y[-1,:], wing_C14.Z[-1,:])
-        self._wake_mesh = Wake(TE_quarter_chords, wake_type)
+        self._wing_panels = Wing(b, AR, nx, ny, wake_dx=wake_dx)
+        self._wake_panels = Wake(nt, ny)
 
-    def get_wing_n_panels(self):
-        return self._wing_mesh.get_n_panels()
+    def get_wing_panels(self):
+        return self._wing_panels
     
-    def get_panels_combined(self):
-        return Mesh.combine_meshes(self._wing_mesh, self._wake_mesh)
+    def get_wake_panels(self):
+        return self._wake_panels
+
+    def plot_model(self):
+        _, ax = plt.subplots(subplot_kw={"projection": "3d", "computed_zorder": False})
+        self._wing_panels.plot_mesh(ax)
+        self._wake_panels.plot_mesh(ax)
+
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_aspect("equal")
+        plt.show()
