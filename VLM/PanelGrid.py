@@ -85,18 +85,18 @@ class PanelGrid:
                 normalZ[i, j] = normal_norm[2]
 
         return normalX, normalY, normalZ
-    
-    def control_points_as_vector(self):
-        CPX = self._control_pointX.ravel()
-        CPY = self._control_pointY.ravel()
-        CPZ = self._control_pointZ.ravel()
-        return [np.array([CPX[k], CPY[k], CPZ[k]]) for k in range(CPX.size)] 
 
-    def normals_as_vector(self):
-        normalX = self._normalX.ravel()
-        normalY = self._normalY.ravel()
-        normalZ = self._normalZ.ravel()
-        return [np.array([normalX[k], normalY[k], normalZ[k]]) for k in range(normalX.size)] 
+    # def control_points_as_vector(self):
+    #     CPX = self._control_pointX.ravel()
+    #     CPY = self._control_pointY.ravel()
+    #     CPZ = self._control_pointZ.ravel()
+    #     return [np.array([CPX[k], CPY[k], CPZ[k]]) for k in range(CPX.size)] 
+    
+    # def normals_as_vector(self):
+    #     normalX = self._normalX.ravel()
+    #     normalY = self._normalY.ravel()
+    #     normalZ = self._normalZ.ravel()
+    #     return [np.array([normalX[k], normalY[k], normalZ[k]]) for k in range(normalX.size)] 
     
     def get_C14(self):
         return PanelGrid.GridVector3(self._C14X, self._C14Y, self._C14Z)

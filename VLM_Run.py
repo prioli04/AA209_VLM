@@ -1,10 +1,11 @@
-# VLM - Fixed Wake
+# VLM - Time Stepping Wake
 # Rectangular Wing
 # No sweep
 # No twist
 # No dihedral
 # Symmetric airfoil
 
+import cProfile
 import VLM
 
 b = 2.5 # m
@@ -23,7 +24,8 @@ wake_dx = 0.3 * wake_dt * V_inf
 panels = VLM.Panels(b, AR, nx, ny, wake_dx, wake_steps)
 params = VLM.Parameters(V_inf, alfa, rho, S, AR, wake_steps, wake_dt, wake_dx)
 solver = VLM.Solver(panels, params)
-results = solver.solve()
+# results = solver.solve()
+cProfile.run("solver.solve()")
 
-solver.print_results()
+# solver.print_results()
 panels.plot_model()

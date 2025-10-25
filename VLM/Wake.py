@@ -31,7 +31,6 @@ class Wake(PanelGrid):
         self._C14Y[0, :] = TE_points.Y
         self._C14Z[0, :] = TE_points.Z
 
-        # if it != 0:
         self._update_wake()
 
     def update_Gammas(self, TE_Gammas: np.ndarray):
@@ -43,3 +42,21 @@ class Wake(PanelGrid):
         self._C14Y += offset_map.Y
         self._C14Z += offset_map.Z
         self._update_wake()
+
+    def C14_for_vectorized(self, it: int):
+        C14X = self._C14X[1:it + 1, :].reshape(-1, 1)
+        C14Y = self._C14Y[1:it + 1, :].reshape(-1, 1)
+        C14Z = self._C14Z[1:it + 1, :].reshape(-1, 1)
+        return np.hstack((C14X, C14Y, C14Z))
+    
+    # def control_points_for_vectorized(self, it: int):
+    #     CPX = self._control_pointX[:it, :].reshape(-1, 1)
+    #     CPY = self._control_pointY[:it, :].reshape(-1, 1)
+    #     CPZ = self._control_pointZ[:it, :].reshape(-1, 1)
+    #     return np.hstack((CPX, CPY, CPZ))
+    
+    # def normal_for_vectorized(self, it: int):
+    #     normalX = self._normalX[:it, :].reshape(-1, 1)
+    #     normalY = self._normalY[:it, :].reshape(-1, 1)
+    #     normalZ = self._normalZ[:it, :].reshape(-1, 1)
+    #     return np.hstack((normalX, normalY, normalZ))
