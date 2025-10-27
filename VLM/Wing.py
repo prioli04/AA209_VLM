@@ -30,9 +30,6 @@ class Wing(PanelGrid):
     def C14_VORING(self):
         return super()._C14_VORING_base(self._C14X, self._C14Y, self._C14Z)
     
-    def get_Gammas(self):
-        return super()._get_Gammas_base(self._Gammas)
-    
     def control_points_VORING(self, n_tiles: int):
         n_points = self._nx * self._ny
 

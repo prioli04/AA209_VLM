@@ -92,9 +92,8 @@ class PanelGrid:
     def get_dimensions(self):
         return self._nx, self._ny
     
-    @staticmethod
-    def _get_Gammas_base(Gammas: np.ndarray):
-        return Gammas
+    def get_Gammas(self):
+        return self._Gammas
     
     @staticmethod
     def _C14_VORING_base(C14X_orig: np.ndarray, C14Y_orig: np.ndarray, C14Z_orig: np.ndarray):

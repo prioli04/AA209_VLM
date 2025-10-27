@@ -1,19 +1,26 @@
 import matplotlib.pyplot as plt
-from .Wake import Wake
+from .Parameters import Parameters
+from .TimeSteppingWake import TimeSteppingWake
 from .Wing import Wing
 
 class Panels:
-    def __init__(
-            self,
-            b: float,
-            AR: float, 
-            nx: int, 
-            ny: int,
-            wake_dx: float,
-            nt: int):
-        
-        self._wing_panels = Wing(b, AR, nx, ny, wake_dx=wake_dx)
-        self._wake_panels = Wake(nt, ny)
+    def __init__(self, params: Parameters, nx: int, ny: int, plot=False):
+        self._wing_panels = Wing(params.b, params.AR, nx, ny, wake_dx=params.wake_dx)
+        TE_points = self._wing_panels.extract_TE_points()
+
+        self._plot_ax = self._create_plot() if plot else None
+        self._wake_panels = TimeSteppingWake(params.wake_steps, ny, params.wake_dt, TE_points, self._plot_ax)
+
+    def _create_plot(self):
+        _, ax = plt.subplots(subplot_kw={"projection": "3d", "computed_zorder": False})
+        self._wing_panels.plot_mesh(ax)
+
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_aspect("equal")
+        plt.show(block=False)
+
+        return ax
 
     def get_wing_panels(self):
         return self._wing_panels
@@ -21,14 +28,3 @@ class Panels:
     def get_wake_panels(self):
         return self._wake_panels
 
-    def plot_model(self):
-        _, ax = plt.subplots(subplot_kw={"projection": "3d", "computed_zorder": False})
-        self._wing_panels.plot_mesh(ax)
-        wake_lines = self._wake_panels.update_wake_plot(ax)
-
-        ax.set_xlabel("X")
-        ax.set_ylabel("Y")
-        ax.set_aspect("equal")
-        plt.show(block=False)
-
-        return ax, wake_lines

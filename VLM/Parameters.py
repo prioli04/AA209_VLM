@@ -6,6 +6,7 @@ class Parameters(NamedTuple):
     rho: float
     S: float
     AR: float
+    b: float
 
     wake_steps: int
     wake_dt: float
