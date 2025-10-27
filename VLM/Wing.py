@@ -27,46 +27,35 @@ class Wing(PanelGrid):
     def extract_TE_points(self):
         return super().GridVector3(self._C14X[-1, :], self._C14Y[-1, :], self._C14Z[-1, :])
 
-    def C14_for_vectorized2(self):
-        C14X1, C14Y1, C14Z1 = self._C14X[:-1,:-1].reshape(-1, 1), self._C14Y[:-1,:-1].reshape(-1, 1), self._C14Z[:-1,:-1].reshape(-1, 1)
-        C14X2, C14Y2, C14Z2 = self._C14X[:-1,1:].reshape(-1, 1), self._C14Y[:-1,1:].reshape(-1, 1), self._C14Z[:-1,1:].reshape(-1, 1)
-        C14X3, C14Y3, C14Z3 = self._C14X[1:,1:].reshape(-1, 1), self._C14Y[1:,1:].reshape(-1, 1), self._C14Z[1:,1:].reshape(-1, 1)
-        C14X4, C14Y4, C14Z4 = self._C14X[1:,:-1].reshape(-1, 1), self._C14Y[1:,:-1].reshape(-1, 1), self._C14Z[1:,:-1].reshape(-1, 1)
-
-        C14X = np.hstack((C14X1, C14X2, C14X3, C14X4))
-        C14Y = np.hstack((C14Y1, C14Y2, C14Y3, C14Y4))
-        C14Z = np.hstack((C14Z1, C14Z2, C14Z3, C14Z4))
-        return C14X, C14Y, C14Z
-
-    def control_points_for_vectorized(self):
-        CPX = self._control_pointX.reshape(-1, 1)
-        CPY = self._control_pointY.reshape(-1, 1)
-        CPZ = self._control_pointZ.reshape(-1, 1)
-        return np.hstack((CPX, CPY, CPZ))
+    def C14_VORING(self):
+        return super()._C14_VORING_base(self._C14X, self._C14Y, self._C14Z)
     
-    def control_points_for_vectorized2(self, n_tiles: int):
+    def get_Gammas(self):
+        return super()._get_Gammas_base(self._Gammas)
+    
+    def control_points_VORING(self, n_tiles: int):
         n_panels = self._nx * self._ny
 
-        CPX = np.tile(self._control_pointX.reshape(-1, 1)[np.newaxis].T, [1, n_tiles])
-        CPY = np.tile(self._control_pointY.reshape(-1, 1)[np.newaxis].T, [1, n_tiles])
-        CPZ = np.tile(self._control_pointZ.reshape(-1, 1)[np.newaxis].T, [1, n_tiles])
+        CPX = np.tile(self._control_pointX.reshape(-1, 1), [1, n_tiles])
+        CPY = np.tile(self._control_pointY.reshape(-1, 1), [1, n_tiles])
+        CPZ = np.tile(self._control_pointZ.reshape(-1, 1), [1, n_tiles])
 
         control_points = np.zeros((n_panels, n_tiles, 3))
         control_points[:, :, 0], control_points[:, :, 1], control_points[:, :, 2] = CPX, CPY, CPZ
         return control_points
         
-    def normal_for_vectorized(self):
+    def normal_RHS(self):
         normalX = self._normalX.reshape(-1, 1)
         normalY = self._normalY.reshape(-1, 1)
         normalZ = self._normalZ.reshape(-1, 1)
         return np.hstack((normalX, normalY, normalZ))
     
-    def normal_for_vectorized2(self, n_tiles: int):
+    def normal_VORING(self, n_tiles: int):
         n_panels = self._nx * self._ny
 
-        NX = np.tile(self._normalX.reshape(-1, 1)[np.newaxis].T, [1, n_tiles])
-        NY = np.tile(self._normalY.reshape(-1, 1)[np.newaxis].T, [1, n_tiles])
-        NZ = np.tile(self._normalZ.reshape(-1, 1)[np.newaxis].T, [1, n_tiles])
+        NX = np.tile(self._normalX.reshape(-1, 1), [1, n_tiles])
+        NY = np.tile(self._normalY.reshape(-1, 1), [1, n_tiles])
+        NZ = np.tile(self._normalZ.reshape(-1, 1), [1, n_tiles])
 
         normals = np.zeros((n_panels, n_tiles, 3))
         normals[:, :, 0], normals[:, :, 1], normals[:, :, 2] = NX, NY, NZ

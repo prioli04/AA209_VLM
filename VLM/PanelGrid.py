@@ -86,23 +86,24 @@ class PanelGrid:
 
         return normalX, normalY, normalZ
 
-    # def control_points_as_vector(self):
-    #     CPX = self._control_pointX.ravel()
-    #     CPY = self._control_pointY.ravel()
-    #     CPZ = self._control_pointZ.ravel()
-    #     return [np.array([CPX[k], CPY[k], CPZ[k]]) for k in range(CPX.size)] 
-    
-    # def normals_as_vector(self):
-    #     normalX = self._normalX.ravel()
-    #     normalY = self._normalY.ravel()
-    #     normalZ = self._normalZ.ravel()
-    #     return [np.array([normalX[k], normalY[k], normalZ[k]]) for k in range(normalX.size)] 
-    
     def get_C14(self):
         return PanelGrid.GridVector3(self._C14X, self._C14Y, self._C14Z)
     
     def get_dimensions(self):
         return self._nx, self._ny
     
-    def get_Gammas(self):
-        return self._Gammas
+    @staticmethod
+    def _get_Gammas_base(Gammas: np.ndarray):
+        return Gammas
+    
+    @staticmethod
+    def _C14_VORING_base(C14X_orig: np.ndarray, C14Y_orig: np.ndarray, C14Z_orig: np.ndarray):
+        C14X1, C14Y1, C14Z1 = C14X_orig[:-1,:-1].reshape(-1, 1), C14Y_orig[:-1,:-1].reshape(-1, 1), C14Z_orig[:-1,:-1].reshape(-1, 1)
+        C14X2, C14Y2, C14Z2 = C14X_orig[:-1,1:].reshape(-1, 1), C14Y_orig[:-1,1:].reshape(-1, 1), C14Z_orig[:-1,1:].reshape(-1, 1)
+        C14X3, C14Y3, C14Z3 = C14X_orig[1:,1:].reshape(-1, 1), C14Y_orig[1:,1:].reshape(-1, 1), C14Z_orig[1:,1:].reshape(-1, 1)
+        C14X4, C14Y4, C14Z4 = C14X_orig[1:,:-1].reshape(-1, 1), C14Y_orig[1:,:-1].reshape(-1, 1), C14Z_orig[1:,:-1].reshape(-1, 1)
+
+        C14X = np.hstack((C14X1, C14X2, C14X3, C14X4))
+        C14Y = np.hstack((C14Y1, C14Y2, C14Y3, C14Y4))
+        C14Z = np.hstack((C14Z1, C14Z2, C14Z3, C14Z4))
+        return C14X, C14Y, C14Z

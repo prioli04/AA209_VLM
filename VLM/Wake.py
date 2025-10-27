@@ -43,20 +43,30 @@ class Wake(PanelGrid):
         self._C14Z += offset_map.Z
         self._update_wake()
 
-    def C14_for_vectorized(self, it: int):
-        C14X = self._C14X[1:it + 1, :].reshape(-1, 1)
-        C14Y = self._C14Y[1:it + 1, :].reshape(-1, 1)
-        C14Z = self._C14Z[1:it + 1, :].reshape(-1, 1)
-        return np.hstack((C14X, C14Y, C14Z))
+    def C14_VORING(self, it: int):
+        if it < 1:
+            raise ValueError("C14_as_controls_points should not be called for 'it < 1'.")
+        
+        C14X_cut = self._C14X[:it + 1, :]
+        C14Y_cut = self._C14Y[:it + 1, :]
+        C14Z_cut = self._C14Z[:it + 1, :]
+
+        return super()._C14_VORING_base(C14X_cut, C14Y_cut, C14Z_cut)
     
-    # def control_points_for_vectorized(self, it: int):
-    #     CPX = self._control_pointX[:it, :].reshape(-1, 1)
-    #     CPY = self._control_pointY[:it, :].reshape(-1, 1)
-    #     CPZ = self._control_pointZ[:it, :].reshape(-1, 1)
-    #     return np.hstack((CPX, CPY, CPZ))
+    def C14_as_control_points(self, it: int, n_tiles: int):
+        if it < 1:
+            raise ValueError("C14_as_controls_points should not be called for 'it < 1'.")
+
+        n_panels = it * (self._ny + 1)
+
+        CPX = np.tile(self._C14X[1:it + 1, :].reshape(-1, 1), [1, n_tiles])
+        CPY = np.tile(self._C14Y[1:it + 1, :].reshape(-1, 1), [1, n_tiles])
+        CPZ = np.tile(self._C14Z[1:it + 1, :].reshape(-1, 1), [1, n_tiles])
+
+        control_points = np.zeros((n_panels, n_tiles, 3))
+        control_points[:, :, 0], control_points[:, :, 1], control_points[:, :, 2] = CPX, CPY, CPZ
+
+        return control_points
     
-    # def normal_for_vectorized(self, it: int):
-    #     normalX = self._normalX[:it, :].reshape(-1, 1)
-    #     normalY = self._normalY[:it, :].reshape(-1, 1)
-    #     normalZ = self._normalZ[:it, :].reshape(-1, 1)
-    #     return np.hstack((normalX, normalY, normalZ))
+    def get_Gammas(self, it: int):
+        return super()._get_Gammas_base(self._Gammas[:it, :])
