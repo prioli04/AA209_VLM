@@ -7,6 +7,7 @@ from .Post import Post
 class Solver:
     def __init__(self, panels: Panels, params: Parameters):
         self._params = params        
+        self._ax_plot, self._wake_lines = panels.plot_model()
         self._wake_panels = panels.get_wake_panels()
 
         self._wing_panels = panels.get_wing_panels()
@@ -19,6 +20,7 @@ class Solver:
         self._AIC: np.ndarray = np.zeros((self._n_wing_panels, self._n_wing_panels))
         self._B: np.ndarray = np.zeros((self._n_wing_panels, self._n_wing_panels))
         self._RHS: np.ndarray = np.zeros((self._n_wing_panels, 1))
+        self._w_wake: np.ndarray = np.zeros((self._wing_nx, self._wing_ny))
 
         self._compute_aerodynamic_influence()
         self._post = Post()
@@ -39,8 +41,13 @@ class Solver:
             self._wing_panels.update_Gammas(Gammas)
             self._wing_panels.update_w_ind(w_ind)
             
-            self._post.compute_coefficients(self._wing_panels, self._params, Gammas, w_ind)
+            self._post.compute_coefficients(self._wing_panels, self._params, Gammas, w_ind, self._w_wake)
             self.print_results()
+            
+            if self._wake_lines is not None:
+                self._wake_lines.remove()
+
+            self._wake_lines = self._wake_panels.update_wake_plot(self._ax_plot)
             print()
 
             self._wake_rollup(Gammas[-1, :], it, d_wake)
@@ -60,27 +67,29 @@ class Solver:
         self._B[:] = np.sum(V_star * normals, axis=2)
 
     def _wake_rollup(self, TE_Gammas: np.ndarray, it: int, d_wake: np.ndarray):
-        self._wake_panels.step_wake(it, self._TE_points, d_wake)
+        self._wake_panels.step_wake(self._TE_points, d_wake)
         self._wake_panels.update_Gammas(TE_Gammas)
 
         if it != 0:
             offset_map = self._build_wake_offset_map(it)
             self._wake_panels.offset_wake(offset_map)
 
+        self._wake_panels.advance_it()
+
     def _build_wake_offset_map(self, it):
         dt = self._params.wake_dt
         wake_panels_nx, wake_panels_ny = self._wake_panels.get_dimensions()
 
         wing_C14X, wing_C14Y, wing_C14Z = self._wing_panels.C14_VORING()
-        wake_C14X, wake_C14Y, wake_C14Z = self._wake_panels.C14_VORING(it)
+        wake_C14X, wake_C14Y, wake_C14Z = self._wake_panels.C14_VORING()
 
-        wake_C14_as_CP_wing = self._wake_panels.C14_as_control_points(it, self._n_wing_panels)
-        wake_C14_as_CP_wake = self._wake_panels.C14_as_control_points(it, wake_C14X.shape[0])
+        wake_C14_as_CP_wing = self._wake_panels.C14_as_control_points(self._n_wing_panels)
+        wake_C14_as_CP_wake = self._wake_panels.C14_as_control_points(wake_C14X.shape[0])
         
         wing_Gammas = self._wing_panels.get_Gammas()
         wing_Gammas = np.tile(wing_Gammas.reshape(1, -1), [wake_C14_as_CP_wing.shape[0], 1])[:, :, np.newaxis]
 
-        wake_Gammas = self._wake_panels.get_Gammas(it)
+        wake_Gammas = self._wake_panels.get_Gammas()
         wake_Gammas = np.tile(wake_Gammas.reshape(1, -1), [wake_C14_as_CP_wake.shape[0], 1])[:, :, np.newaxis]
 
         offset_map_X = np.zeros((wake_panels_nx + 1, wake_panels_ny + 1))
@@ -105,21 +114,26 @@ class Solver:
     def _update_RHS(self, it: int):
         V_inf_vec = Solver._V_inf_vec(self._params)
         normals = self._wing_panels.normal_RHS()
-        self._RHS[:] = -np.sum((V_inf_vec + self._compute_wake_influence(it)) * normals, axis=1).reshape(-1, 1)
+
+        wake_influence = self._compute_wake_influence(it)
+        self._RHS[:] = -np.sum((V_inf_vec + wake_influence) * normals, axis=1).reshape(-1, 1)
 
     def _compute_wake_influence(self, it: int):
         if it == 0:
             return 0.0
 
         else:
-            wake_C14X, wake_C14Y, wake_C14Z = self._wake_panels.C14_VORING(it)
+            wake_C14X, wake_C14Y, wake_C14Z = self._wake_panels.C14_VORING()
             control_points = self._wing_panels.control_points_VORING(wake_C14X.shape[0])
 
-            wake_Gammas = self._wake_panels.get_Gammas(it)
+            wake_Gammas = self._wake_panels.get_Gammas()
             wake_Gammas = np.tile(wake_Gammas.reshape(1, -1), [control_points.shape[0], 1])[:, :, np.newaxis]
 
             dV_w, _ = Solver._VORING(wake_C14X, wake_C14Y, wake_C14Z, control_points, wake_Gammas, True)
-            return np.sum(dV_w, axis=1)
+            V_w = np.sum(dV_w, axis=1)
+
+            self._w_wake = V_w[:, 2].reshape(-1, self._wing_ny)
+            return V_w
 
     @staticmethod
     def _VORING(

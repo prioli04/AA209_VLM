@@ -20,7 +20,7 @@ class Post:
         for f in self._result._fields:
             print(f"{f}: {self._result.__getattribute__(f)}")
 
-    def compute_coefficients(self, wing_mesh: Wing, params: Parameters, Gammas: np.ndarray, w_ind: np.ndarray):
+    def compute_coefficients(self, wing_mesh: Wing, params: Parameters, Gammas: np.ndarray, w_ind: np.ndarray, w_wake: np.ndarray):
         delta_L = np.zeros_like(Gammas)
         delta_D = np.zeros_like(Gammas)
         nx, ny = Gammas.shape
@@ -38,7 +38,7 @@ class Post:
                 delta_Gamma = Gammas[i, j] - Gammas[i - 1, j] if i != 0 else Gammas[i, j]
 
                 delta_L[i, j] = rho * V_inf * delta_Gamma * delta_y
-                delta_D[i, j] = -rho * w_ind[i, j] * delta_Gamma * delta_y
+                delta_D[i, j] = -rho * (w_ind[i, j] + w_wake[i, j]) * delta_Gamma * delta_y
 
         L = delta_L.sum()
         D = delta_D.sum()

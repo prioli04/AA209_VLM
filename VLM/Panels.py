@@ -24,9 +24,11 @@ class Panels:
     def plot_model(self):
         _, ax = plt.subplots(subplot_kw={"projection": "3d", "computed_zorder": False})
         self._wing_panels.plot_mesh(ax)
-        self._wake_panels.plot_mesh(ax)
+        wake_lines = self._wake_panels.update_wake_plot(ax)
 
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_aspect("equal")
-        plt.show()
+        plt.show(block=False)
+
+        return ax, wake_lines
