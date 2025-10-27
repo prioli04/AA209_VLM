@@ -21,7 +21,7 @@ class Wake(PanelGrid):
         if self._it > 0:
             wake_lines = self._plot_mesh(ax)
             ax.set_aspect("equal")
-            plt.pause(1)
+            plt.pause(0.01)
 
         return wake_lines
     
@@ -72,13 +72,13 @@ class Wake(PanelGrid):
         if self._it < 1:
             raise ValueError("C14_as_controls_points should not be called for 'self._it < 1'.")
 
-        n_panels = self._it * (self._ny + 1)
+        n_points = (self._it + 1) * (self._ny + 1)
 
-        CPX = np.tile(self._C14X[1:self._it + 1, :].reshape(-1, 1), [1, n_tiles])
-        CPY = np.tile(self._C14Y[1:self._it + 1, :].reshape(-1, 1), [1, n_tiles])
-        CPZ = np.tile(self._C14Z[1:self._it + 1, :].reshape(-1, 1), [1, n_tiles])
+        CPX = np.tile(self._C14X[1:self._it + 2, :].reshape(-1, 1), [1, n_tiles])
+        CPY = np.tile(self._C14Y[1:self._it + 2, :].reshape(-1, 1), [1, n_tiles])
+        CPZ = np.tile(self._C14Z[1:self._it + 2, :].reshape(-1, 1), [1, n_tiles])
 
-        control_points = np.zeros((n_panels, n_tiles, 3))
+        control_points = np.zeros((n_points, n_tiles, 3))
         control_points[:, :, 0], control_points[:, :, 1], control_points[:, :, 2] = CPX, CPY, CPZ
 
         return control_points

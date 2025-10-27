@@ -43,17 +43,19 @@ class Solver:
             
             self._post.compute_coefficients(self._wing_panels, self._params, Gammas, w_ind, self._w_wake)
             self.print_results()
-            
-            if self._wake_lines is not None:
-                self._wake_lines.remove()
-
-            self._wake_lines = self._wake_panels.update_wake_plot(self._ax_plot)
+            self.update_wake_plot()
             print()
 
             self._wake_rollup(Gammas[-1, :], it, d_wake)
 
         return self._post.export_results()
     
+    def update_wake_plot(self):
+        if self._wake_lines is not None:
+            self._wake_lines.remove()   
+
+        self._wake_lines = self._wake_panels.update_wake_plot(self._ax_plot)
+
     def print_results(self):
         self._post.print_results()
 
@@ -105,9 +107,9 @@ class Solver:
         V += np.sum(dV_wake, axis=1)
             
         offset_point = dt * V
-        offset_map_X[1:it + 1, :] = offset_point[:, 0].reshape(-1, wake_panels_ny + 1)
-        offset_map_Y[1:it + 1, :] = offset_point[:, 1].reshape(-1, wake_panels_ny + 1)
-        offset_map_Z[1:it + 1, :] = offset_point[:, 2].reshape(-1, wake_panels_ny + 1)
+        offset_map_X[1:it + 2, :] = offset_point[:, 0].reshape(-1, wake_panels_ny + 1)
+        offset_map_Y[1:it + 2, :] = offset_point[:, 1].reshape(-1, wake_panels_ny + 1)
+        offset_map_Z[1:it + 2, :] = offset_point[:, 2].reshape(-1, wake_panels_ny + 1)
 
         return PanelGrid.GridVector3(offset_map_X, offset_map_Y, offset_map_Z)
 

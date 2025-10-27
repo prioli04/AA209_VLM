@@ -34,13 +34,13 @@ class Wing(PanelGrid):
         return super()._get_Gammas_base(self._Gammas)
     
     def control_points_VORING(self, n_tiles: int):
-        n_panels = self._nx * self._ny
+        n_points = self._nx * self._ny
 
         CPX = np.tile(self._control_pointX.reshape(-1, 1), [1, n_tiles])
         CPY = np.tile(self._control_pointY.reshape(-1, 1), [1, n_tiles])
         CPZ = np.tile(self._control_pointZ.reshape(-1, 1), [1, n_tiles])
 
-        control_points = np.zeros((n_panels, n_tiles, 3))
+        control_points = np.zeros((n_points, n_tiles, 3))
         control_points[:, :, 0], control_points[:, :, 1], control_points[:, :, 2] = CPX, CPY, CPZ
         return control_points
         
