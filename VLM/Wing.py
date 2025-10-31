@@ -3,13 +3,12 @@ import matplotlib.axes
 from .PanelGrid import PanelGrid
 
 class Wing(PanelGrid):
-    def __init__(self, b: float, AR: float, nx: int, ny: int, wake_dx: float):
-        points = self._compute_points(b, AR, nx, ny)
+    def __init__(self, b: float, MAC: float, nx: int, ny: int, wake_dx: float):
+        points = self._compute_points(b, MAC, nx, ny)
         super().__init__(nx, ny, points, wake_dx=wake_dx)
         self._w_ind_trefftz = np.zeros(ny)
 
-    def _compute_points(self, b: float, AR: float, nx: int, ny: int):
-        MAC = b / AR
+    def _compute_points(self, b: float, MAC: float, nx: int, ny: int):
         x = np.linspace(0, MAC, nx + 1)
         y = np.linspace(0, b / 2.0, ny + 1)
 

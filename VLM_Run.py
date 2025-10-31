@@ -8,30 +8,23 @@
 import cProfile
 import VLM
 
-b = 2.5 # m
-AR = 5.0 # -
-S = b**2 / AR # m^2
-V_inf = 12.0 # m/s
-wake_dt = 0.5 * (b / AR) / V_inf
-
 params = VLM.Parameters(
-    V_inf = V_inf, 
+    V_inf = 12.0, 
     alfa_deg = 5.0, 
     rho = 1.225, 
-    S = S, 
-    AR = AR, 
-    b = b, 
+    AR = 5.0, 
+    b = 2.5, 
 
     n_wake_deform = 5, 
     wake_steps = 20, 
-    wake_dt = wake_dt, 
-    wake_dx = 0.3 * wake_dt * V_inf,
+    wake_dt_fact = 0.5, 
+    wake_dx_fact = 0.3,
 
     CL_tol = 1e-4,
     CD_tol = 1e-5
 )
 
-nx, ny = 3, 4
+nx, ny = 20, 30
 panels = VLM.Panels(params, nx, ny, plot=False)
 solver = VLM.Solver(panels, params)
 results = solver.solve()

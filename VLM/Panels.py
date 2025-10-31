@@ -5,7 +5,7 @@ from .Wing import Wing
 
 class Panels:
     def __init__(self, params: Parameters, nx: int, ny: int, plot=False):
-        self._wing_panels = Wing(params.b, params.AR, nx, ny, wake_dx=params.wake_dx)
+        self._wing_panels = Wing(params.b, params.MAC, nx, ny, wake_dx=params.wake_dx)
         TE_points = self._wing_panels.extract_TE_points()
 
         self._plot_ax = self._create_plot() if plot else None
