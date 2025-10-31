@@ -10,8 +10,14 @@ class Post:
         CL_CD: float
         efficiency: float
 
-    def __init__(self):
+    def __init__(self, CL_tol: float, CD_tol: float):
         self._result: Post.Result | None = None
+        self._converged = False
+        self._CL_tol = CL_tol
+        self._CD_tol = CD_tol
+
+        self._CL_prev = 0.0
+        self._CD_prev = 0.0
 
     def export_results(self):
         return self._result
@@ -19,6 +25,9 @@ class Post:
     def print_results(self):
         for f in self._result._fields:
             print(f"{f}: {self._result.__getattribute__(f)}")
+
+    def is_converged(self):
+        return self._converged
 
     def compute_coefficients(self, wing_mesh: Wing, params: Parameters, Gammas: np.ndarray, w_ind: np.ndarray):
         ny = Gammas.shape[1]
@@ -43,6 +52,10 @@ class Post:
 
         CL = L / (0.5 * rho * V_inf**2 * (0.5 * S))
         CD = D / (0.5 * rho * V_inf**2 * (0.5 * S))
+
+        self._converged = CL - self._CL_prev < self._CL_tol and CD - self._CD_prev < self._CD_tol
+        self._CL_prev = CL
+        self._CD_prev = CD
 
         CL_CD = CL / CD
         efficiency = CL**2 / (CD * np.pi * AR)

@@ -19,13 +19,13 @@ class Solver:
         self._RHS: np.ndarray = np.zeros((self._n_wing_panels, 1))
 
         self._compute_aerodynamic_influence()
-        self._post = Post()
+        self._post = Post(params.CL_tol, params.CD_tol)
 
     def solve(self):
         inv_AIC = np.linalg.inv(self._AIC)
         d_wake = self._params.wake_dt * self._params.V_inf * np.array([1.0, 0.0, 0.0])
 
-        for _ in range(self._params.wake_steps):
+        while not self._post.is_converged():
             self._update_RHS()
 
             Gammas = inv_AIC @ self._RHS

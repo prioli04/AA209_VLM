@@ -6,72 +6,68 @@ from .PanelGrid import PanelGrid
 from .Wing import Wing
 
 class TimeSteppingWake(PanelGrid):
-    def __init__(self, nt: int, n_wake_deform: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, plot_ax: matplotlib.axes.Axes | None):
-        super().__init__(nt, ny)
+    def __init__(self, n_rows_deform_max: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, plot_ax: matplotlib.axes.Axes | None):
+        super().__init__(0, ny)
         self._it = 0
         self._dt = dt
-        self._n_wake_deform = n_wake_deform
+        self._n_rows_deform_max = n_rows_deform_max
         self._wing_TE_points = wing_TE_points
         self._plot_ax = plot_ax
         self._wake_lines = None
-        self._add_TE()
+        self._add_TE(start=True)
 
     def _C14_VORING(self):
         if self._it < 1:
             raise ValueError("C14_as_controls_points should not be called for 'self._it < 1'.")
-        
-        C14X_cut = self._C14X[:self._it + 1, :]
-        C14Y_cut = self._C14Y[:self._it + 1, :]
-        C14Z_cut = self._C14Z[:self._it + 1, :]
 
-        return super()._C14_VORING_base(C14X_cut, C14Y_cut, C14Z_cut)
+        return super()._C14_VORING_base(self._C14X, self._C14Y, self._C14Z)
 
-    def _add_TE(self):
-        self._C14X[0, :] = self._wing_TE_points.X
-        self._C14Y[0, :] = self._wing_TE_points.Y
-        self._C14Z[0, :] = self._wing_TE_points.Z
+    def _add_TE(self, start: bool):
+        if start:
+            self._C14X[0, :] = self._wing_TE_points.X
+            self._C14Y[0, :] = self._wing_TE_points.Y
+            self._C14Z[0, :] = self._wing_TE_points.Z
+
+        else:
+            self._C14X = np.vstack((self._wing_TE_points.X, self._C14X))
+            self._C14Y = np.vstack((self._wing_TE_points.Y, self._C14Y))
+            self._C14Z = np.vstack((self._wing_TE_points.Z, self._C14Z))
+            self._nx += 1
 
     def _step_wake(self, d_wake: np.ndarray):
-        self._C14X[:self._it + 1, :] += d_wake[0]
-        self._C14Y[:self._it + 1, :] += d_wake[1]
-        self._C14Z[:self._it + 1, :] += d_wake[2]
+        self._C14X += d_wake[0]
+        self._C14Y += d_wake[1]
+        self._C14Z += d_wake[2]
         
-        self._C14X[1:, :] = self._C14X[:-1, :]
-        self._C14Y[1:, :] = self._C14Y[:-1, :]
-        self._C14Z[1:, :] = self._C14Z[:-1, :]
-
-        self._add_TE()
-        self._compute_control_points(self._C14X, self._C14Y, self._C14Z)
-        self._compute_normals(self._C14X, self._C14Y, self._C14Z)
+        self._add_TE(start=False)
+        self._control_pointX, self._control_pointY, self._control_pointZ = self._compute_control_points(self._C14X, self._C14Y, self._C14Z)
+        self._normalX, self._normalY, self._normalZ = self._compute_normals(self._C14X, self._C14Y, self._C14Z)
 
     def _update_Gammas(self, TE_Gammas: np.ndarray):
-        self._Gammas[1:, :] = self._Gammas[:-1, :]
-        self._Gammas[0, :] = TE_Gammas
+        self._Gammas = np.vstack((TE_Gammas, self._Gammas))
 
-    def _C14_as_control_points(self, nt: int, n_tiles: int):
+    def _C14_as_control_points(self, n_rows: int, n_tiles: int):
         if self._it < 1:
             raise ValueError("C14_as_controls_points should not be called for 'self._it < 1'.")
 
-        n_points = nt * (self._ny + 1)
+        CPX = np.tile(self._C14X[1:n_rows + 1, :].reshape(-1, 1), [1, n_tiles])
+        CPY = np.tile(self._C14Y[1:n_rows + 1, :].reshape(-1, 1), [1, n_tiles])
+        CPZ = np.tile(self._C14Z[1:n_rows + 1, :].reshape(-1, 1), [1, n_tiles])
 
-        CPX = np.tile(self._C14X[1:nt + 1, :].reshape(-1, 1), [1, n_tiles])
-        CPY = np.tile(self._C14Y[1:nt + 1, :].reshape(-1, 1), [1, n_tiles])
-        CPZ = np.tile(self._C14Z[1:nt + 1, :].reshape(-1, 1), [1, n_tiles])
-
-        control_points = np.zeros((n_points, n_tiles, 3))
+        control_points = np.zeros((CPX.shape[0], n_tiles, 3))
         control_points[:, :, 0], control_points[:, :, 1], control_points[:, :, 2] = CPX, CPY, CPZ
 
         return control_points
 
     def _build_offset_map(self, wing_C14X: np.ndarray, wing_C14Y: np.ndarray, wing_C14Z: np.ndarray, wing_Gammas: np.ndarray):
-        nt = self._it + 1 if self._it < self._n_wake_deform else self._n_wake_deform
+        n_panel_rows = self._n_rows_deform_max if self._normalX.shape[0] >= self._n_rows_deform_max else self._normalX.shape[0]
         wake_C14X, wake_C14Y, wake_C14Z = self._C14_VORING()
 
-        wake_C14_as_CP_wing = self._C14_as_control_points(nt, wing_C14X.shape[0])
-        wake_C14_as_CP_wake = self._C14_as_control_points(nt, wake_C14X.shape[0])
+        wake_C14_as_CP_wing = self._C14_as_control_points(n_panel_rows, wing_C14X.shape[0])
+        wake_C14_as_CP_wake = self._C14_as_control_points(n_panel_rows, wake_C14X.shape[0])
         
         wing_Gammas = np.tile(wing_Gammas.reshape(1, -1), [wake_C14_as_CP_wing.shape[0], 1])[:, :, np.newaxis]
-        wake_Gammas = np.tile(self._Gammas[:self._it, :].reshape(1, -1), [wake_C14_as_CP_wake.shape[0], 1])[:, :, np.newaxis]
+        wake_Gammas = np.tile(self._Gammas.reshape(1, -1), [wake_C14_as_CP_wake.shape[0], 1])[:, :, np.newaxis]
 
         offset_map_X = np.zeros((self._nx + 1, self._ny + 1))
         offset_map_Y = np.zeros((self._nx + 1, self._ny + 1))
@@ -86,9 +82,9 @@ class TimeSteppingWake(PanelGrid):
         V += np.sum(dV_wake, axis=1)
             
         offset_point = self._dt * V
-        offset_map_X[1:nt + 1, :] = offset_point[:, 0].reshape(-1, self._ny + 1)
-        offset_map_Y[1:nt + 1, :] = offset_point[:, 1].reshape(-1, self._ny + 1)
-        offset_map_Z[1:nt + 1, :] = offset_point[:, 2].reshape(-1, self._ny + 1)
+        offset_map_X[1:n_panel_rows + 1, :] = offset_point[:, 0].reshape(-1, self._ny + 1)
+        offset_map_Y[1:n_panel_rows + 1, :] = offset_point[:, 1].reshape(-1, self._ny + 1)
+        offset_map_Z[1:n_panel_rows + 1, :] = offset_point[:, 2].reshape(-1, self._ny + 1)
 
         return PanelGrid.GridVector3(offset_map_X, offset_map_Y, offset_map_Z)
     
@@ -105,7 +101,7 @@ class TimeSteppingWake(PanelGrid):
             self._wake_lines.remove()   
 
         if self._it > 0 and self._plot_ax is not None:
-            self._wake_lines = self._plot_ax.plot_wireframe(self._C14X[:self._it + 1, :], self._C14Y[:self._it + 1, :], self._C14Z[:self._it + 1, :])
+            self._wake_lines = self._plot_ax.plot_wireframe(self._C14X, self._C14Y, self._C14Z)
             self._plot_ax.set_aspect("equal")
             plt.pause(1)
 
@@ -126,7 +122,7 @@ class TimeSteppingWake(PanelGrid):
 
         wake_C14X, wake_C14Y, wake_C14Z = self._C14_VORING()
         control_points = wing_panels.control_points_VORING(wake_C14X.shape[0])
-        wake_Gammas = np.tile(self._Gammas[:self._it, :].reshape(1, -1), [control_points.shape[0], 1])[:, :, np.newaxis]
+        wake_Gammas = np.tile(self._Gammas.reshape(1, -1), [control_points.shape[0], 1])[:, :, np.newaxis]
 
         dV_w, _ = Flows.VORING(wake_C14X, wake_C14Y, wake_C14Z, control_points, wake_Gammas, True)
         V_w = np.sum(dV_w, axis=1)

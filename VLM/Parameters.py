@@ -12,3 +12,6 @@ class Parameters(NamedTuple):
     wake_steps: int
     wake_dt: float
     wake_dx: float
+
+    CL_tol: float
+    CD_tol: float

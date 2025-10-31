@@ -9,7 +9,7 @@ class Panels:
         TE_points = self._wing_panels.extract_TE_points()
 
         self._plot_ax = self._create_plot() if plot else None
-        self._wake_panels = TimeSteppingWake(params.wake_steps, params.n_wake_deform, ny, params.wake_dt, TE_points, self._plot_ax)
+        self._wake_panels = TimeSteppingWake(params.n_wake_deform, ny, params.wake_dt, TE_points, self._plot_ax)
 
     def _create_plot(self):
         _, ax = plt.subplots(subplot_kw={"projection": "3d", "computed_zorder": False})
