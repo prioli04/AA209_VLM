@@ -13,6 +13,7 @@ class TimeSteppingWake(PanelGrid):
         self._wing_TE_points = wing_TE_points
         self._plot_ax = plot_ax
         self._wake_lines = None
+        self._add_TE()
 
     def _C14_VORING(self):
         if self._it < 1:

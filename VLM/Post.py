@@ -21,9 +21,9 @@ class Post:
             print(f"{f}: {self._result.__getattribute__(f)}")
 
     def compute_coefficients(self, wing_mesh: Wing, params: Parameters, Gammas: np.ndarray, w_ind: np.ndarray):
-        delta_L = np.zeros_like(Gammas)
-        delta_D = np.zeros_like(Gammas)
-        nx, ny = Gammas.shape
+        ny = Gammas.shape[1]
+        delta_L = np.zeros(ny)
+        delta_D = np.zeros(ny)
 
         rho = params.rho
         V_inf = params.V_inf
@@ -32,13 +32,11 @@ class Post:
 
         _, C14_y, _ = wing_mesh.get_C14()
 
-        for i in range(nx):
-            for j in range(ny):
-                delta_y = np.abs(C14_y[i, j + 1] - C14_y[i, j])
-                delta_Gamma = Gammas[i, j] - Gammas[i - 1, j] if i != 0 else Gammas[i, j]
+        for j in range(ny):
+            delta_y = np.abs(C14_y[-1, j + 1] - C14_y[-1, j])
 
-                delta_L[i, j] = rho * V_inf * delta_Gamma * delta_y
-                delta_D[i, j] = -rho * w_ind[i, j] * delta_Gamma * delta_y
+            delta_L[j] = rho * V_inf * Gammas[-1, j] * delta_y
+            delta_D[j] = - 0.5 * rho * w_ind[j] * Gammas[-1, j] * delta_y
 
         L = delta_L.sum()
         D = delta_D.sum()

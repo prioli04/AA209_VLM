@@ -36,6 +36,18 @@ class Flows:
         return V, V_star
 
     @classmethod
+    def VOR2D(cls, x0: float, z0: float, x: float, z: float, Gamma: float):
+        V = np.array([0.0, 0.0, 0.0])
+        r2 = (x - x0)**2 + (z - z0)**2
+
+        if r2 > cls.__eps:
+            u = (Gamma / (2 * np.pi * r2)) * (z - z0)
+            w = - (Gamma / (2 * np.pi * r2)) * (x - x0)
+            V[1], V[2]  = u, w
+
+        return V
+
+    @classmethod
     def _VORTXL(cls, P: np.ndarray, P1: np.ndarray, P2: np.ndarray, Gamma: np.ndarray):
         r1_vec = P - P1
         r2_vec = P - P2
