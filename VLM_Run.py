@@ -31,7 +31,7 @@ params = VLM.Parameters(
     CD_tol = 1e-5
 )
 
-nx, ny = 3, 20
+nx, ny = 3, 4
 panels = VLM.Panels(params, nx, ny, plot=False)
 solver = VLM.Solver(panels, params)
 results = solver.solve()

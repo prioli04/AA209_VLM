@@ -21,7 +21,6 @@ class Flows:
         V4 = Flows._VORTXL(P, P4, P1, Gamma)
 
         V = V1 + V2 + V3 + V4
-        V_star = V2 + V4
 
         if sym:
             P_sym = P * np.array([1.0, -1.0, 1.0])
@@ -31,9 +30,8 @@ class Flows:
             V4 = Flows._VORTXL(P_sym, P4, P1, Gamma)
 
             V += (V1 + V2 + V3 + V4) * np.array([1.0, -1.0, 1.0])
-            V_star += (V2 + V4) * np.array([1.0, -1.0, 1.0])
 
-        return V, V_star
+        return V
 
     @classmethod
     def VOR2D(cls, x0: float, z0: float, x: float, z: float, Gamma: float):
@@ -65,6 +63,8 @@ class Flows:
         r0_dot_r1 = np.sum(r0_vec * r1_vec, axis=2)[:, :, np.newaxis]
         r0_dot_r2 = np.sum(r0_vec * r2_vec, axis=2)[:, :, np.newaxis]
 
-        V = (Gamma / (4.0 * np.pi * norm_r1_cross_r2**2)) * (r0_dot_r1 / r1 - r0_dot_r2 / r2) * r1_cross_r2
+        with np.errstate(divide='ignore', invalid='ignore'):
+            V = (Gamma / (4.0 * np.pi * norm_r1_cross_r2**2)) * (r0_dot_r1 / r1 - r0_dot_r2 / r2) * r1_cross_r2
+
         V[~r_cut, :] = 0.0
         return V

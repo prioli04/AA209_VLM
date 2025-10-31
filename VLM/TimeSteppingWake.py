@@ -75,10 +75,10 @@ class TimeSteppingWake(PanelGrid):
 
         V = np.zeros((wake_C14_as_CP_wake.shape[0], 3))
 
-        dV_wing, _ = Flows.VORING(wing_C14X, wing_C14Y, wing_C14Z, wake_C14_as_CP_wing, wing_Gammas, True)
+        dV_wing = Flows.VORING(wing_C14X, wing_C14Y, wing_C14Z, wake_C14_as_CP_wing, wing_Gammas, True)
         V += np.sum(dV_wing, axis=1)
 
-        dV_wake, _ = Flows.VORING(wake_C14X, wake_C14Y, wake_C14Z, wake_C14_as_CP_wake, wake_Gammas, True)
+        dV_wake = Flows.VORING(wake_C14X, wake_C14Y, wake_C14Z, wake_C14_as_CP_wake, wake_Gammas, True)
         V += np.sum(dV_wake, axis=1)
             
         offset_point = self._dt * V
@@ -124,7 +124,7 @@ class TimeSteppingWake(PanelGrid):
         control_points = wing_panels.control_points_VORING(wake_C14X.shape[0])
         wake_Gammas = np.tile(self._Gammas.reshape(1, -1), [control_points.shape[0], 1])[:, :, np.newaxis]
 
-        dV_w, _ = Flows.VORING(wake_C14X, wake_C14Y, wake_C14Z, control_points, wake_Gammas, True)
+        dV_w = Flows.VORING(wake_C14X, wake_C14Y, wake_C14Z, control_points, wake_Gammas, True)
         V_w = np.sum(dV_w, axis=1)
 
         self._w_wake = V_w[:, 2].reshape(-1, wing_ny)

@@ -1,8 +1,10 @@
-import numpy as np
 from .Flows import Flows
 from .Panels import Panels
 from .Parameters import Parameters
 from .Post import Post
+
+import numpy as np
+import time
 
 class Solver:
     def __init__(self, panels: Panels, params: Parameters):
@@ -22,6 +24,8 @@ class Solver:
         self._post = Post(params.CL_tol, params.CD_tol)
 
     def solve(self):
+        t0 = time.time()
+
         inv_AIC = np.linalg.inv(self._AIC)
         d_wake = self._params.wake_dt * self._params.V_inf * np.array([1.0, 0.0, 0.0])
 
@@ -37,22 +41,19 @@ class Solver:
             self._wing_panels.update_w_ind_trefftz(w_ind)
             
             self._post.compute_coefficients(self._wing_panels, self._params, Gammas, w_ind)
-            self.print_results()
-            print()
+            self._post.print_results()
 
             self._wake_panels.wake_rollup(self._wing_C14X, self._wing_C14Y, self._wing_C14Z, Gammas, d_wake)
 
+        print(f"\nCompleted in {(time.time() - t0):.2f} s.")
         return self._post.export_results()
     
-    def print_results(self):
-        self._post.print_results()
-
     def _compute_aerodynamic_influence(self):
         C14X, C14Y, C14Z = self._wing_panels.C14_VORING()
         control_points = self._wing_panels.control_points_VORING(self._n_wing_panels)
         normals = self._wing_panels.normal_VORING(self._n_wing_panels)
 
-        V, V_star = Flows.VORING(C14X, C14Y, C14Z, control_points, np.ones((self._n_wing_panels, self._n_wing_panels, 1)), True)
+        V = Flows.VORING(C14X, C14Y, C14Z, control_points, np.ones((self._n_wing_panels, self._n_wing_panels, 1)), True)
         self._AIC[:] = np.sum(V * normals, axis=2)
 
         control_points_trefftz = self._wing_panels.control_points_TREFFTZ()
