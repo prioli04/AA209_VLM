@@ -6,10 +6,11 @@ from .PanelGrid import PanelGrid
 from .Wing import Wing
 
 class TimeSteppingWake(PanelGrid):
-    def __init__(self, nt: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, plot_ax: matplotlib.axes.Axes):
+    def __init__(self, nt: int, n_wake_deform: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, plot_ax: matplotlib.axes.Axes | None):
         super().__init__(nt, ny)
         self._it = 0
         self._dt = dt
+        self._n_wake_deform = n_wake_deform
         self._wing_TE_points = wing_TE_points
         self._plot_ax = plot_ax
         self._wake_lines = None
@@ -47,15 +48,15 @@ class TimeSteppingWake(PanelGrid):
         self._Gammas[1:, :] = self._Gammas[:-1, :]
         self._Gammas[0, :] = TE_Gammas
 
-    def _C14_as_control_points(self, n_tiles: int):
+    def _C14_as_control_points(self, nt: int, n_tiles: int):
         if self._it < 1:
             raise ValueError("C14_as_controls_points should not be called for 'self._it < 1'.")
 
-        n_points = (self._it + 1) * (self._ny + 1)
+        n_points = nt * (self._ny + 1)
 
-        CPX = np.tile(self._C14X[1:self._it + 2, :].reshape(-1, 1), [1, n_tiles])
-        CPY = np.tile(self._C14Y[1:self._it + 2, :].reshape(-1, 1), [1, n_tiles])
-        CPZ = np.tile(self._C14Z[1:self._it + 2, :].reshape(-1, 1), [1, n_tiles])
+        CPX = np.tile(self._C14X[1:nt + 1, :].reshape(-1, 1), [1, n_tiles])
+        CPY = np.tile(self._C14Y[1:nt + 1, :].reshape(-1, 1), [1, n_tiles])
+        CPZ = np.tile(self._C14Z[1:nt + 1, :].reshape(-1, 1), [1, n_tiles])
 
         control_points = np.zeros((n_points, n_tiles, 3))
         control_points[:, :, 0], control_points[:, :, 1], control_points[:, :, 2] = CPX, CPY, CPZ
@@ -63,10 +64,11 @@ class TimeSteppingWake(PanelGrid):
         return control_points
 
     def _build_offset_map(self, wing_C14X: np.ndarray, wing_C14Y: np.ndarray, wing_C14Z: np.ndarray, wing_Gammas: np.ndarray):
+        nt = self._it + 1 if self._it < self._n_wake_deform else self._n_wake_deform
         wake_C14X, wake_C14Y, wake_C14Z = self._C14_VORING()
 
-        wake_C14_as_CP_wing = self._C14_as_control_points(wing_C14X.shape[0])
-        wake_C14_as_CP_wake = self._C14_as_control_points(wake_C14X.shape[0])
+        wake_C14_as_CP_wing = self._C14_as_control_points(nt, wing_C14X.shape[0])
+        wake_C14_as_CP_wake = self._C14_as_control_points(nt, wake_C14X.shape[0])
         
         wing_Gammas = np.tile(wing_Gammas.reshape(1, -1), [wake_C14_as_CP_wing.shape[0], 1])[:, :, np.newaxis]
         wake_Gammas = np.tile(self._Gammas[:self._it, :].reshape(1, -1), [wake_C14_as_CP_wake.shape[0], 1])[:, :, np.newaxis]
@@ -84,9 +86,9 @@ class TimeSteppingWake(PanelGrid):
         V += np.sum(dV_wake, axis=1)
             
         offset_point = self._dt * V
-        offset_map_X[1:self._it + 2, :] = offset_point[:, 0].reshape(-1, self._ny + 1)
-        offset_map_Y[1:self._it + 2, :] = offset_point[:, 1].reshape(-1, self._ny + 1)
-        offset_map_Z[1:self._it + 2, :] = offset_point[:, 2].reshape(-1, self._ny + 1)
+        offset_map_X[1:nt + 1, :] = offset_point[:, 0].reshape(-1, self._ny + 1)
+        offset_map_Y[1:nt + 1, :] = offset_point[:, 1].reshape(-1, self._ny + 1)
+        offset_map_Z[1:nt + 1, :] = offset_point[:, 2].reshape(-1, self._ny + 1)
 
         return PanelGrid.GridVector3(offset_map_X, offset_map_Y, offset_map_Z)
     
@@ -105,9 +107,9 @@ class TimeSteppingWake(PanelGrid):
         if self._it > 0 and self._plot_ax is not None:
             self._wake_lines = self._plot_ax.plot_wireframe(self._C14X[:self._it + 1, :], self._C14Y[:self._it + 1, :], self._C14Z[:self._it + 1, :])
             self._plot_ax.set_aspect("equal")
-            plt.pause(0.01)
+            plt.pause(1)
 
-    def wake_rollup(self, wing_C14X: np.ndarray, wing_C14Y: np.ndarray, wing_C14Z: np.ndarray, wing_Gammas: np.ndarray, d_wake: float):
+    def wake_rollup(self, wing_C14X: np.ndarray, wing_C14Y: np.ndarray, wing_C14Z: np.ndarray, wing_Gammas: np.ndarray, d_wake: np.ndarray):
         self._step_wake(d_wake)
         self._update_Gammas(wing_Gammas[-1, :])
 

@@ -8,6 +8,7 @@ class Parameters(NamedTuple):
     AR: float
     b: float
 
+    n_wake_deform: int
     wake_steps: int
     wake_dt: float
     wake_dx: float
