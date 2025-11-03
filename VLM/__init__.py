@@ -1,3 +1,4 @@
+from VLM.Airfoil import Airfoil
 from VLM.Flows import Flows
 from VLM.PanelGrid import PanelGrid
 from VLM.Panels import Panels

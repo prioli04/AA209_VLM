@@ -1,12 +1,18 @@
+from .Airfoil import Airfoil
 from .PanelGrid import PanelGrid
 from .Section import Section
 from mpl_toolkits.mplot3d.axes3d import Axes3D # type: ignore[import-untyped]
 from typing import List
+
+import copy
 import numpy as np
 
 
 class Wing(PanelGrid):
     def __init__(self, b: float, S: float, nx: int, ny: int, sections: List[Section], wake_dx: float):
+        if len(sections) == 1:
+            sections.append(Section(1.0, sections[0].fc, sections[0].x_offset, sections[0].airfoil_path_str))
+
         self._sections = sections
         self._b = b
         self._S = S
@@ -27,7 +33,7 @@ class Wing(PanelGrid):
         corners_x, corners_y = np.meshgrid(x, y, indexing="ij")
         corners_z = np.zeros_like(corners_x)
 
-        corners_x = self._apply_sections(corners_x, corners_y, self._b / 2.0)
+        corners_x, corners_z = self._apply_sections(corners_x, corners_y, corners_z, self._b / 2.0)
 
         return super().GridVector3(corners_x, corners_y, corners_z)
     
@@ -74,17 +80,16 @@ class Wing(PanelGrid):
 
         return C14_sweep
 
-    def _apply_sections(self, corners_x: np.ndarray, corners_y: np.ndarray, b_max: float):
-        if len(self._sections) == 1:
-            self._sections.append(Section(1.0, self._sections[0].fc, self._sections[0].x_offset))
-            
+    def _apply_sections(self, corners_x: np.ndarray, corners_y: np.ndarray, corners_z: np.ndarray, b_max: float):
         fc_current = self._sections[0].fc
         x_offset_current = self._sections[0].x_offset
         fy_current = self._sections[0].fy_pos
+        airfoil_current = Airfoil.read(self._sections[0].airfoil_path)
 
         fc_next = self._sections[1].fc
         x_offset_next = self._sections[1].x_offset
         fy_next = self._sections[1].fy_pos
+        airfoil_next = Airfoil.read(self._sections[1].airfoil_path)
 
         next_counter = 1
 
@@ -96,19 +101,22 @@ class Wing(PanelGrid):
 
             corners_x[:, i_sec] *= fc
             corners_x[:, i_sec] += x_offset
+            corners_z[:, i_sec] = airfoil_current.get_camber_line(corners_z.shape[0], fc * self._root_chord)
 
             if fy_sec > fy_next:
                 fc_current = self._sections[next_counter].fc
                 x_offset_current = self._sections[next_counter].x_offset
                 fy_current = self._sections[next_counter].fy_pos
+                airfoil_current = copy.deepcopy(airfoil_next)
 
                 fc_next = self._sections[next_counter + 1].fc
                 x_offset_next = self._sections[next_counter + 1].x_offset
                 fy_next = self._sections[next_counter + 1].fy_pos
+                airfoil_next = Airfoil.read(self._sections[next_counter + 1].airfoil_path)
 
                 next_counter += 1
 
-        return corners_x
+        return corners_x, corners_z
     
     def update_w_ind_trefftz(self, w_ind: np.ndarray):
         self._w_ind_trefftz[:] = w_ind
