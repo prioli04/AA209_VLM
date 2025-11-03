@@ -6,10 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class Wake(PanelGrid):
-    def __init__(self, n_rows_deform_max: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, plot_ax: Axes3D | None):
+    def __init__(self, n_rows_deform_max: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, TE_dx: float, plot_ax: Axes3D | None):
         super().__init__(0, ny)
         self._it = 0
         self._dt = dt
+        self._TE_dx = TE_dx
         self._n_rows_deform_max = n_rows_deform_max
         self._wing_TE_points = wing_TE_points
         self._plot_ax = plot_ax
@@ -129,3 +130,10 @@ class Wake(PanelGrid):
 
         self._w_wake = V_w[:, 2].reshape(-1, wing_ny)
         return V_w
+    
+    def print_wake_params(self):
+        print("===== Wake Parameters =====")
+        print(f"Maximum number of deformed rows: {self._n_rows_deform_max:d}")
+        print(f"Time step: {self._dt:.3f} s")
+        print(f"Wake shed {self._TE_dx:.3f} m after TE")
+        print()

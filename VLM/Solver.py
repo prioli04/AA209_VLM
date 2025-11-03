@@ -23,6 +23,10 @@ class Solver:
         self._compute_aerodynamic_influence()
         self._post = Post(params.CL_tol, params.CD_tol)
 
+        self._wing_panels.print_wing_geom()
+        self._wake_panels.print_wake_params()
+        self._params.print_run_params()
+
     def solve(self):
         t0 = time.time()
 
