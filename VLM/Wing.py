@@ -1,21 +1,93 @@
-import numpy as np
-import matplotlib.axes
 from .PanelGrid import PanelGrid
+from .Section import Section
+from mpl_toolkits.mplot3d.axes3d import Axes3D # type: ignore[import-untyped]
+from typing import List
+import numpy as np
+
 
 class Wing(PanelGrid):
-    def __init__(self, b: float, MAC: float, nx: int, ny: int, wake_dx: float):
-        points = self._compute_points(b, MAC, nx, ny)
-        super().__init__(nx, ny, points, wake_dx=wake_dx)
+    def __init__(self, b: float, S: float, nx: int, ny: int, sections: List[Section], wake_dx: float):
+        self._sections = sections
+        self._root_chord = self._compute_root_chord(b, S)
+        self._MAC = self._compute_MAC(b, S)
+
+        self._points = self._compute_points(b, nx, ny)
+        super().__init__(nx, ny, self._points, wake_dx=wake_dx)
         self._w_ind_trefftz = np.zeros(ny)
 
-    def _compute_points(self, b: float, MAC: float, nx: int, ny: int):
-        x = np.linspace(0, MAC, nx + 1)
+    def _compute_points(self, b: float, nx: int, ny: int):
+        x = np.linspace(0, self._root_chord, nx + 1)
         y = np.linspace(0, b / 2.0, ny + 1)
 
         corners_x, corners_y = np.meshgrid(x, y, indexing="ij")
         corners_z = np.zeros_like(corners_x)
-        
+
+        corners_x = self._apply_sections(corners_x, corners_y, b / 2.0)
+
         return super().GridVector3(corners_x, corners_y, corners_z)
+    
+    def _compute_root_chord(self, b: float, S: float):
+        sum_fS = 0.0
+
+        for i in range(len(self._sections) - 1):
+            b_i = (b / 2.0) * (self._sections[i + 1].fy_pos - self._sections[i].fy_pos)
+            fcr_i = self._sections[i].fc
+            fct_i = self._sections[i + 1].fc
+
+            sum_fS += b_i * (fcr_i + fct_i) / 2.0
+
+        return 0.5 * S / sum_fS
+    
+    def _compute_MAC(self, b: float, S: float):
+        sum_Si_MACi = 0.0
+        
+        for i in range(len(self._sections) - 1):
+            b_i = (b / 2.0) * (self._sections[i + 1].fy_pos - self._sections[i].fy_pos)
+            fcr_i = self._sections[i].fc
+            fct_i = self._sections[i + 1].fc
+
+            t_i = fct_i / fcr_i
+            S_i = b_i * self._root_chord * (fcr_i + fct_i) / 2.0
+            MAC_i = (2.0 / 3.0) * self._root_chord * ((1 + t_i + t_i**2) / (1 + t_i))
+            sum_Si_MACi += S_i * MAC_i
+
+        return sum_Si_MACi / (0.5 * S)
+
+    def _apply_sections(self, corners_x: np.ndarray, corners_y: np.ndarray, b_max: float):
+        if len(self._sections) == 1:
+            self._sections.append(Section(1.0, self._sections[0].fc, self._sections[0].x_offset))
+            
+        fc_current = self._sections[0].fc
+        x_offset_current = self._sections[0].x_offset
+        fy_current = self._sections[0].fy_pos
+
+        fc_next = self._sections[1].fc
+        x_offset_next = self._sections[1].x_offset
+        fy_next = self._sections[1].fy_pos
+
+        next_counter = 1
+
+        for i_sec in range(corners_x.shape[1]):
+            fy_sec = corners_y[0, i_sec] / b_max
+
+            fc = np.interp(fy_sec, [fy_current, fy_next], [fc_current, fc_next])            
+            x_offset = np.interp(fy_sec, [fy_current, fy_next], [x_offset_current, x_offset_next])
+
+            corners_x[:, i_sec] *= fc
+            corners_x[:, i_sec] += x_offset
+
+            if fy_sec > fy_next:
+                fc_current = self._sections[next_counter].fc
+                x_offset_current = self._sections[next_counter].x_offset
+                fy_current = self._sections[next_counter].fy_pos
+
+                fc_next = self._sections[next_counter + 1].fc
+                x_offset_next = self._sections[next_counter + 1].x_offset
+                fy_next = self._sections[next_counter + 1].fy_pos
+
+                next_counter += 1
+
+        return corners_x
     
     def update_w_ind_trefftz(self, w_ind: np.ndarray):
         self._w_ind_trefftz[:] = w_ind
@@ -75,6 +147,5 @@ class Wing(PanelGrid):
         normalZ = self._normalZ[-1, :].reshape(-1, 1)
         return np.hstack((normalX, normalY, normalZ))
 
-    def plot_mesh(self, ax: matplotlib.axes.Axes):
-        ax.scatter(self._C14X, self._C14Y, self._C14Z, c="r", marker="o", depthshade=False)
-        ax.scatter(self._control_pointX, self._control_pointY, self._control_pointZ, c="k", marker="D", depthshade=False)
+    def plot_mesh(self, ax: Axes3D):
+        ax.plot_surface(self._points.X, self._points.Y, self._points.Z)

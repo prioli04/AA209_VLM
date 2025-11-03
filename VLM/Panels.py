@@ -1,15 +1,17 @@
 import matplotlib.pyplot as plt
 from .Parameters import Parameters
-from .TimeSteppingWake import TimeSteppingWake
+from .Section import Section
+from .Wake import Wake
 from .Wing import Wing
+from typing import List
 
 class Panels:
-    def __init__(self, params: Parameters, nx: int, ny: int, plot=False):
-        self._wing_panels = Wing(params.b, params.MAC, nx, ny, wake_dx=params.wake_dx)
+    def __init__(self, params: Parameters, sections: List[Section], nx: int, ny: int, plot=False):
+        self._wing_panels = Wing(params.b, params.S, nx, ny, sections, wake_dx=params.wake_dx)
         TE_points = self._wing_panels.extract_TE_points()
 
         self._plot_ax = self._create_plot() if plot else None
-        self._wake_panels = TimeSteppingWake(params.n_wake_deform, ny, params.wake_dt, TE_points, self._plot_ax)
+        self._wake_panels = Wake(params.n_wake_deform, ny, params.wake_dt, TE_points, self._plot_ax)
 
     def _create_plot(self):
         _, ax = plt.subplots(subplot_kw={"projection": "3d", "computed_zorder": False})

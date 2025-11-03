@@ -3,6 +3,7 @@ from VLM.PanelGrid import PanelGrid
 from VLM.Panels import Panels
 from VLM.Parameters import Parameters
 from VLM.Post import Post
+from VLM.Section import Section
 from VLM.Solver import Solver
-from VLM.TimeSteppingWake import TimeSteppingWake
+from VLM.Wake import Wake
 from VLM.Wing import Wing

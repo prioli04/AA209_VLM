@@ -1,12 +1,12 @@
-import numpy as np
-import matplotlib.axes
-import matplotlib.pyplot as plt
 from .Flows import Flows
 from .PanelGrid import PanelGrid
 from .Wing import Wing
+from mpl_toolkits.mplot3d.axes3d import Axes3D # type: ignore[import-untyped]
+import matplotlib.pyplot as plt
+import numpy as np
 
-class TimeSteppingWake(PanelGrid):
-    def __init__(self, n_rows_deform_max: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, plot_ax: matplotlib.axes.Axes | None):
+class Wake(PanelGrid):
+    def __init__(self, n_rows_deform_max: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, plot_ax: Axes3D | None):
         super().__init__(0, ny)
         self._it = 0
         self._dt = dt
@@ -101,9 +101,9 @@ class TimeSteppingWake(PanelGrid):
             self._wake_lines.remove()   
 
         if self._it > 0 and self._plot_ax is not None:
-            self._wake_lines = self._plot_ax.plot_wireframe(self._C14X, self._C14Y, self._C14Z)
+            self._wake_lines = self._plot_ax.plot_wireframe(self._C14X, self._C14Y, self._C14Z, rstride=0)
             self._plot_ax.set_aspect("equal")
-            plt.pause(1)
+            plt.pause(0.1)
 
     def wake_rollup(self, wing_C14X: np.ndarray, wing_C14Y: np.ndarray, wing_C14Z: np.ndarray, wing_Gammas: np.ndarray, d_wake: np.ndarray):
         self._step_wake(d_wake)
