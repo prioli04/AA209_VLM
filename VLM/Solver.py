@@ -62,18 +62,15 @@ class Solver:
 
         control_points_trefftz = self._wing_panels.control_points_TREFFTZ()
         C14_trefftz = self._wing_panels.C14_TREFFTZ()
-        normals_trefftz = self._wing_panels.normal_TREFFTZ()
 
         for i in range(self._wing_ny):
             CP = control_points_trefftz[i, :]
-            normal = normals_trefftz[i, :]
 
             for j in range(self._wing_ny):
                 P1 = C14_trefftz[j, :]
                 P2 = C14_trefftz[j + 1, :]
 
-                Vi_star = Solver.bij_trefftz(CP, P1, P2, 1.0, True)
-                self._B_trefftz[i, j] = np.sum(Vi_star * normal)
+                self._B_trefftz[i, j] = Solver.bij_trefftz(CP, P1, P2, 1.0, True)
 
     def _update_RHS(self):
         V_inf_vec = Solver._V_inf_vec(self._params)
@@ -94,7 +91,7 @@ class Solver:
             V_ind_trefftz2 = Flows.VOR2D(P2[1], P2[2], P_sym[1], P_sym[2], Gamma)
             V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([1.0, -1.0, 1.0])
 
-        return V_ind
+        return V_ind[2]
 
     @staticmethod
     def _V_inf_vec(params: Parameters):

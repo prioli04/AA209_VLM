@@ -170,12 +170,6 @@ class Wing(PanelGrid):
         normals[:, :, 0], normals[:, :, 1], normals[:, :, 2] = NX, NY, NZ
         return normals
     
-    def normal_TREFFTZ(self):
-        normalX = self._normalX[-1, :].reshape(-1, 1)
-        normalY = self._normalY[-1, :].reshape(-1, 1)
-        normalZ = self._normalZ[-1, :].reshape(-1, 1)
-        return np.hstack((normalX, normalY, normalZ))
-
     def plot_mesh(self, ax: Axes3D):
         ax.plot_surface(self._points.X, self._points.Y, self._points.Z)
 
