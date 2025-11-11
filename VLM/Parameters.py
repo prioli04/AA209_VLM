@@ -1,4 +1,7 @@
 from dataclasses import dataclass, field
+from typing import Optional
+
+import numpy as np
 
 @dataclass(frozen=True)
 class Parameters:
@@ -21,7 +24,7 @@ class Parameters:
 
     sym: bool
     ground: bool
-
+    
     def __post_init__(self):
         super().__setattr__("S", self.b**2 / self.AR)
 

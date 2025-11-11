@@ -9,7 +9,7 @@ import numpy as np
 
 
 class Wing(PanelGrid):
-    def __init__(self, b: float, S: float, nx: int, ny: int, sections: List[Section], wake_dx: float):
+    def __init__(self, b: float, S: float, nx: int, ny: int, Z: float, sections: List[Section], wake_dx: float):
         if len(sections) == 1:
             sections.append(Section(1.0, sections[0].fc, sections[0].x_offset, sections[0].airfoil_path_str))
 
@@ -22,16 +22,16 @@ class Wing(PanelGrid):
         self._taper_ratio = self._sections[-1].fc 
         self._C14_sweep = self._compute_C14_sweep() 
 
-        self._points = self._compute_points(nx, ny)
+        self._points = self._compute_points(nx, ny, Z)
         super().__init__(nx, ny, self._points, wake_dx=wake_dx)
         self._w_ind_trefftz = np.zeros(ny)
 
-    def _compute_points(self, nx: int, ny: int):
+    def _compute_points(self, nx: int, ny: int, Z: float):
         x = np.linspace(0, self._root_chord, nx + 1)
         y = np.linspace(0, self._b / 2.0, ny + 1)
 
         corners_x, corners_y = np.meshgrid(x, y, indexing="ij")
-        corners_z = np.zeros_like(corners_x)
+        corners_z = Z * np.ones_like(corners_x)
 
         corners_x, corners_z = self._apply_sections(corners_x, corners_y, corners_z, self._b / 2.0)
 
@@ -101,7 +101,7 @@ class Wing(PanelGrid):
 
             corners_x[:, i_sec] *= fc
             corners_x[:, i_sec] += x_offset
-            corners_z[:, i_sec] = airfoil_current.get_camber_line(corners_z.shape[0], fc * self._root_chord)
+            corners_z[:, i_sec] += airfoil_current.get_camber_line(corners_z.shape[0], fc * self._root_chord)
 
             if fy_sec > fy_next:
                 fc_current = self._sections[next_counter].fc
@@ -170,6 +170,12 @@ class Wing(PanelGrid):
         normals[:, :, 0], normals[:, :, 1], normals[:, :, 2] = NX, NY, NZ
         return normals
     
+    def normal_TREFFTZ(self):
+        normalX = self._normalX[-1, :].reshape(-1, 1)
+        normalY = self._normalY[-1, :].reshape(-1, 1)
+        normalZ = self._normalZ[-1, :].reshape(-1, 1)
+        return np.hstack((normalX, normalY, normalZ))
+
     def plot_mesh(self, ax: Axes3D):
         ax.plot_surface(self._points.X, self._points.Y, self._points.Z)
 
