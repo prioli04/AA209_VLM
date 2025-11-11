@@ -23,7 +23,7 @@ class Solver:
         self._compute_aerodynamic_influence()
         self._post = Post(params.CL_tol, params.CD_tol)
 
-        self._wing_panels.print_wing_geom()
+        panels.print_wing_geom()
         self._wake_panels.print_wake_params()
         self._params.print_run_params()
 
@@ -57,7 +57,7 @@ class Solver:
         control_points = self._wing_panels.control_points_VORING(self._n_wing_panels)
         normals = self._wing_panels.normal_VORING(self._n_wing_panels)
 
-        V = Flows.VORING(C14X, C14Y, C14Z, control_points, np.ones((self._n_wing_panels, self._n_wing_panels, 1)), True, self._params.ground)
+        V = Flows.VORING(C14X, C14Y, C14Z, control_points, np.ones((self._n_wing_panels, self._n_wing_panels, 1)), True, self._params.ground, np.deg2rad(self._params.alfa_deg))
         self._AIC[:] = np.sum(V * normals, axis=2)
 
         control_points_trefftz = self._wing_panels.control_points_TREFFTZ()
@@ -70,7 +70,7 @@ class Solver:
                 P1 = C14_trefftz[j, :]
                 P2 = C14_trefftz[j + 1, :]
 
-                self._B_trefftz[i, j] = Solver.bij_trefftz(CP, P1, P2, 1.0, True, self._params.ground)
+                self._B_trefftz[i, j] = Solver.bij_trefftz(CP, P1, P2, 1.0, True, self._params.ground, np.deg2rad(self._params.alfa_deg))
 
     def _update_RHS(self):
         V_inf_vec = Solver._V_inf_vec(self._params)
@@ -80,7 +80,7 @@ class Solver:
         self._RHS[:] = -np.sum((V_inf_vec + wake_influence) * normals, axis=1).reshape(-1, 1)
 
     @staticmethod
-    def bij_trefftz(P: np.ndarray, P1: np.ndarray, P2: np.ndarray, Gamma: float, sym: bool, ground: bool):
+    def bij_trefftz(P: np.ndarray, P1: np.ndarray, P2: np.ndarray, Gamma: float, sym: bool, ground: bool, alfa: float = 0.0):
         V_ind_trefftz1 = Flows.VOR2D(P1[1], P1[2], P[1], P[2], Gamma)
         V_ind_trefftz2 = Flows.VOR2D(P2[1], P2[2], P[1], P[2], Gamma)
         V_ind = V_ind_trefftz1 - V_ind_trefftz2
@@ -92,14 +92,14 @@ class Solver:
             V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([1.0, -1.0, 1.0])
 
             if ground:
-                P_ground_sym = P_sym * np.array([1.0, 1.0, -1.0])
+                P_ground_sym = P_sym * np.array([1.0, 1.0, -(1.0 / np.cos(alfa))])
 
                 V_ind_trefftz1 = Flows.VOR2D(P1[1], P1[2], P_ground_sym[1], P_ground_sym[2], Gamma)
                 V_ind_trefftz2 = Flows.VOR2D(P2[1], P2[2], P_ground_sym[1], P_ground_sym[2], Gamma)
                 V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([1.0, -1.0, -1.0])
 
         if ground:
-            P_ground = P * np.array([1.0, 1.0, -1.0])
+            P_ground = P * np.array([1.0, 1.0, -(1.0 / np.cos(alfa))])
 
             V_ind_trefftz1 = Flows.VOR2D(P1[1], P1[2], P_ground[1], P_ground[2], Gamma)
             V_ind_trefftz2 = Flows.VOR2D(P2[1], P2[2], P_ground[1], P_ground[2], Gamma)

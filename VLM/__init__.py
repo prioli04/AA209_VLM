@@ -7,4 +7,6 @@ from VLM.Post import Post
 from VLM.Section import Section
 from VLM.Solver import Solver
 from VLM.Wake import Wake
-from VLM.Wing import Wing
+from VLM.WingGeometry import WingGeometry
+from VLM.WingPanels import WingPanels
+from VLM.WingPatch import WingPatch

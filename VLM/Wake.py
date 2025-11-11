@@ -1,6 +1,6 @@
 from .Flows import Flows
 from .PanelGrid import PanelGrid
-from .Wing import Wing
+from .WingPanels import WingPanels
 from mpl_toolkits.mplot3d.axes3d import Axes3D # type: ignore[import-untyped]
 import matplotlib.pyplot as plt
 import numpy as np
@@ -121,7 +121,7 @@ class Wake(PanelGrid):
         self._it += 1
         self._update_wake_plot()
 
-    def compute_wake_influence(self, wing_panels: Wing, wing_ny: int):
+    def compute_wake_influence(self, wing_panels: WingPanels, wing_ny: int):
         if self._it == 0:
             return 0.0
 

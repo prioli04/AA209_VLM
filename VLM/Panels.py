@@ -1,17 +1,17 @@
 import matplotlib.pyplot as plt
 from .Parameters import Parameters
-from .Section import Section
 from .Wake import Wake
-from .Wing import Wing
-from typing import List
+from .WingGeometry import WingGeometry
+from .WingPanels import WingPanels
 
 class Panels:
-    def __init__(self, params: Parameters, sections: List[Section], nx: int, ny: int, Z: float, plot=False):
-        self._wing_panels = Wing(params.b, params.S, nx, ny, Z, sections, wake_dx=params.wake_dx)
+    def __init__(self, params: Parameters, wing_geometry: WingGeometry, Z: float, plot=False):
+        self._wing_geom = wing_geometry
+        self._wing_panels = WingPanels(wing_geometry, Z, wake_dx=params.wake_dx)
         TE_points = self._wing_panels.extract_TE_points()
 
         self._plot_ax = self._create_plot() if plot else None
-        self._wake_panels = Wake(params.n_wake_deform, ny, params.wake_dt, TE_points, params.wake_dx, params.ground, self._plot_ax)
+        self._wake_panels = Wake(params.n_wake_deform, self._wing_panels._ny, params.wake_dt, TE_points, params.wake_dx, params.ground, self._plot_ax)
 
     def _create_plot(self):
         _, ax = plt.subplots(subplot_kw={"projection": "3d", "computed_zorder": False})
@@ -23,6 +23,9 @@ class Panels:
         plt.show(block=False)
 
         return ax
+
+    def print_wing_geom(self):
+        self._wing_geom.print_wing_geom()
 
     def get_wing_panels(self):
         return self._wing_panels

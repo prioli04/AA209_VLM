@@ -1,6 +1,6 @@
 from typing import NamedTuple
 from .Parameters import Parameters
-from .Wing import Wing
+from .WingPanels import WingPanels
 
 import numpy as np
 import sys
@@ -61,7 +61,7 @@ class Post:
     def is_converged(self):
         return self._converged
 
-    def compute_coefficients(self, wing_mesh: Wing, params: Parameters, Gammas: np.ndarray, w_ind: np.ndarray):
+    def compute_coefficients(self, wing_mesh: WingPanels, params: Parameters, Gammas: np.ndarray, w_ind: np.ndarray):
         self._iter += 1
         ny = Gammas.shape[1]
         delta_L = np.zeros(ny)

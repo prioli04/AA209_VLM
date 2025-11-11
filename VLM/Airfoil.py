@@ -58,18 +58,28 @@ class Airfoil:
 
         return x_camber, y_camber
     
-    def get_camber_line(self, nx: int, chord: float):
-        x_vals = np.linspace(0.0, 1.0, nx)
+    def get_camber_line(self, x_vals: np.ndarray, chord: float, twist_deg: float):
+        rot_angle = -np.deg2rad(twist_deg)
+
+        camber_x = np.zeros_like(x_vals)
         camber_z = np.zeros_like(x_vals)
 
         for (i, x) in enumerate(x_vals):
             idx = np.searchsorted(self._x_camber, x, side="right")
             x_interp = self._x_camber[idx - 1:idx + 1]
             y_interp = self._y_camber[idx - 1:idx + 1]
-            camber_z[i] = np.interp(x, x_interp, y_interp)
 
-        return camber_z * chord
+            Px = x_vals[i] - 0.25
+            Py = np.interp(x, x_interp, y_interp)
 
+            Px_rot = Px * np.cos(rot_angle) - Py * np.sin(rot_angle)
+            Py_rot = Px * np.sin(rot_angle) + Py * np.cos(rot_angle)
+
+            camber_x[i] = Px_rot + 0.25
+            camber_z[i] = Py_rot
+
+        return camber_x * chord, camber_z * chord
+        
     def plot_foil(self):
         fig = plt.figure()
         ax = fig.gca()
