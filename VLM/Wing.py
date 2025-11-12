@@ -7,7 +7,6 @@ from typing import List
 import copy
 import numpy as np
 
-
 class Wing(PanelGrid):
     def __init__(self, b: float, S: float, nx: int, ny: int, Z: float, sections: List[Section], wake_dx: float):
         if len(sections) == 1:

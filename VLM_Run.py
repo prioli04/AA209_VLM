@@ -7,8 +7,8 @@ import VLM
 
 sections = [
     VLM.Section(fy_pos=0.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="S1223.dat"),
-    VLM.Section(fy_pos=0.5, fc=1.0 ,x_offset=0.0, twist_deg=0.0, airfoil_path_str="S1223.dat"),
-    VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="S1223.dat")
+    VLM.Section(fy_pos=0.5, fc=1.0 ,x_offset=0.0, twist_deg=-5.0, airfoil_path_str="naca0012.dat"),
+    VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.0, twist_deg=-10.0, airfoil_path_str="naca0012.dat")
 ]
 
 patches = [
