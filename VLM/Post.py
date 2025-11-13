@@ -12,11 +12,12 @@ class Post:
         CL_CD: float
         efficiency: float
 
-    def __init__(self, CL_tol: float, CD_tol: float):
+    def __init__(self, CL_tol: float, CD_tol: float, sym: bool):
         self._result: Post.Result | None = None
         self._cursor_up = False
         self._converged = False
         self._iter = 0
+        self._sym = sym
 
         self._CL_tol = CL_tol
         self._CD_tol = CD_tol
@@ -69,7 +70,7 @@ class Post:
 
         rho = params.rho
         V_inf = params.V_inf
-        S = params.S
+        S_ref = 0.5 * params.S if self._sym else params.S
         AR = params.AR
 
         _, C14_y, _ = wing_mesh.get_C14()
@@ -83,8 +84,8 @@ class Post:
         L = delta_L.sum()
         D = delta_D.sum()
 
-        CL = L / (0.5 * rho * V_inf**2 * (0.5 * S))
-        CD = D / (0.5 * rho * V_inf**2 * (0.5 * S))
+        CL = L / (0.5 * rho * V_inf**2 * S_ref)
+        CD = D / (0.5 * rho * V_inf**2 * S_ref)
 
         self._CL_res = CL - self._CL_prev
         self._CD_res = CD - self._CD_prev

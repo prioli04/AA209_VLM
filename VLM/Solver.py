@@ -21,7 +21,7 @@ class Solver:
         self._RHS: np.ndarray = np.zeros((self._n_wing_panels, 1))
 
         self._compute_aerodynamic_influence()
-        self._post = Post(params.CL_tol, params.CD_tol)
+        self._post = Post(params.CL_tol, params.CD_tol, params.sym)
 
         panels.print_wing_geom()
         self._wake_panels.print_wake_params()
