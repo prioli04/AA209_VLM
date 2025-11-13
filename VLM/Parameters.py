@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 class Parameters:
     V_inf: float
     alfa_deg: float
+    beta_deg: float
     rho: float
     AR: float
     b: float
@@ -33,7 +34,7 @@ class Parameters:
         print("===== Run Parameters =====")
         print(f"Symmetry: {self.sym}")
         print(f"Ground: {self.ground}")
-        print(f"V_inf: {self.V_inf:.2f} m/s (α: {self.alfa_deg:.2f}°; β: {0.0:.2f}°)")
+        print(f"V_inf: {self.V_inf:.2f} m/s (α: {self.alfa_deg:.2f}°; β: {self.beta_deg:.2f}°)")
         print(f"rho: {self.rho:.3f} kg/m³")
         print(f"CL tolerance: {self.CL_tol:.1e}")
         print(f"CD tolerance: {self.CD_tol:.1e}")
