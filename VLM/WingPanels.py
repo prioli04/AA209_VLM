@@ -5,8 +5,15 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D # type: ignore[import-untyped]
 import numpy as np
 
 class WingPanels(PanelGrid):
-    def __init__(self, wing_geometry: WingGeometry, Z: float, wake_dx: float):
+    def __init__(self, wing_geometry: WingGeometry, Z: float, wake_dx: float, sym: bool, alfa_deg: float, beta_deg: float):
         self._patches = wing_geometry.get_patches()
+
+        if sym and beta_deg != 0.0:
+            raise ValueError("Sideslip angle is different than 0° and the symmetry flag is activated.")
+
+        self._sym = sym
+        self._alfa_rad = np.deg2rad(alfa_deg)
+        self._beta_rad = np.deg2rad(beta_deg)
 
         self._b = wing_geometry.b
         self._S = wing_geometry.S
@@ -29,9 +36,39 @@ class WingPanels(PanelGrid):
             corners_x = np.hstack((corners_x[:, :-1], patch_x)) if corners_x.size != 0 else patch_x
             corners_y = np.hstack((corners_y[:, :-1], patch_y)) if corners_y.size != 0 else patch_y
             corners_z = np.hstack((corners_z[:, :-1], patch_z)) if corners_z.size != 0 else patch_z
-            
+
+        if not self._sym:
+            corners_x = np.hstack([np.flip(corners_x, axis=1), corners_x[:,1:]])
+            corners_y = np.hstack([-np.flip(corners_y, axis=1), corners_y[:,1:]])
+            corners_z = np.hstack([np.flip(corners_z, axis=1), corners_z[:,1:]])
+
+        corners_x, corners_y, corners_z = self._rotate_wing(corners_x, corners_y, corners_z)
         return super().GridVector3(corners_x, corners_y, corners_z)
     
+    def _rotate_wing(self, corners_x: np.ndarray, corners_y: np.ndarray, corners_z: np.ndarray):
+        c_alfa, s_alfa = np.cos(self._alfa_rad), np.sin(self._alfa_rad)
+        c_beta, s_beta = np.cos(self._beta_rad), np.sin(self._beta_rad)
+
+        # Alfa rotation:
+        # [cos(alfa) 0 sin(alfa)
+        #     0      1     0
+        #  -sin(alfa) 0 cos(alfa)]
+
+        corners_x_rot_alfa = c_alfa * corners_x + s_alfa * corners_z
+        corners_y_rot_alfa = corners_y
+        corners_z_rot_alfa = -s_alfa * corners_x + c_alfa * corners_z
+
+        # Beta rotation:
+        # [cos(beta) -sin(beta) 0
+        #  sin(beta) cos(beta)  0
+        #      0         0      1]
+
+        corners_x_rot = c_beta * corners_x_rot_alfa - s_beta * corners_y_rot_alfa
+        corners_y_rot = s_beta * corners_x_rot_alfa + c_beta * corners_y_rot_alfa 
+        corners_z_rot = corners_z_rot_alfa
+
+        return corners_x_rot, corners_y_rot, corners_z_rot
+
     def update_w_ind_trefftz(self, w_ind: np.ndarray):
         self._w_ind_trefftz[:] = w_ind
 
@@ -91,4 +128,11 @@ class WingPanels(PanelGrid):
         return np.hstack((normalX, normalY, normalZ))
 
     def plot_mesh(self, ax: Axes3D):
-        ax.plot_surface(self._points.X, self._points.Y, self._points.Z)
+        if self._sym:
+            x_sym = np.hstack([np.flip(self._points.X, axis=1), self._points.X[:, 1:]])
+            y_sym = np.hstack([-np.flip(self._points.Y, axis=1), self._points.Y[:, 1:]])
+            z_sym = np.hstack([np.flip(self._points.Z, axis=1), self._points.Z[:, 1:]])
+            ax.plot_surface(x_sym, y_sym, z_sym)
+
+        else:
+            ax.plot_surface(self._points.X, self._points.Y, self._points.Z)

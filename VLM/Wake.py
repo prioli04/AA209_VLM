@@ -6,14 +6,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class Wake(PanelGrid):
-    def __init__(self, n_rows_deform_max: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, TE_dx: float, ground: bool, plot_ax: Axes3D | None):
+    def __init__(self, n_rows_deform_max: int, ny: int, dt: float, wing_TE_points: PanelGrid.GridVector3, TE_dx: float, sym: bool, ground: bool, plot_ax: Axes3D | None):
         super().__init__(0, ny)
         self._it = 0
         self._dt = dt
         self._TE_dx = TE_dx
         self._n_rows_deform_max = n_rows_deform_max
         self._wing_TE_points = wing_TE_points
-        self._ground_enable = ground
+        self._ground = ground
+        self._sym = sym
         self._plot_ax = plot_ax
         self._wake_lines = None
         self._add_TE(start=True)
@@ -77,10 +78,10 @@ class Wake(PanelGrid):
 
         V = np.zeros((wake_C14_as_CP_wake.shape[0], 3))
 
-        dV_wing = Flows.VORING(wing_C14X, wing_C14Y, wing_C14Z, wake_C14_as_CP_wing, wing_Gammas, True, self._ground_enable)
+        dV_wing = Flows.VORING(wing_C14X, wing_C14Y, wing_C14Z, wake_C14_as_CP_wing, wing_Gammas, self._sym, self._ground)
         V += np.sum(dV_wing, axis=1)
 
-        dV_wake = Flows.VORING(wake_C14X, wake_C14Y, wake_C14Z, wake_C14_as_CP_wake, wake_Gammas, True, self._ground_enable)
+        dV_wake = Flows.VORING(wake_C14X, wake_C14Y, wake_C14Z, wake_C14_as_CP_wake, wake_Gammas, self._sym, self._ground)
         V += np.sum(dV_wake, axis=1)
             
         offset_point = self._dt * V
@@ -95,8 +96,11 @@ class Wake(PanelGrid):
         self._C14Y += offset_map.Y
         self._C14Z += offset_map.Z
 
-        self._C14Y[self._C14Y < 0.0] = 0.0
-        self._C14Z[self._C14Z < 0.01] = 0.01
+        if self._sym:
+            self._C14Y[self._C14Y < 0.0] = 0.0
+
+        if self._ground:
+            self._C14Z[self._C14Z < 0.01] = 0.01
 
         self._compute_control_points(self._C14X, self._C14Y, self._C14Z)
         self._compute_normals(self._C14X, self._C14Y, self._C14Z)
@@ -106,7 +110,15 @@ class Wake(PanelGrid):
             self._wake_lines.remove()   
 
         if self._it > 0 and self._plot_ax is not None:
-            self._wake_lines = self._plot_ax.plot_wireframe(self._C14X, self._C14Y, self._C14Z, rstride=0)
+            if self._sym:
+                x_sym = np.hstack([np.flip(self._C14X, axis=1), self._C14X[:, 1:]])
+                y_sym = np.hstack([-np.flip(self._C14Y, axis=1), self._C14Y[:, 1:]])
+                z_sym = np.hstack([np.flip(self._C14Z, axis=1), self._C14Z[:, 1:]])
+                self._wake_lines = self._plot_ax.plot_wireframe(x_sym, y_sym, z_sym, rstride=0)
+
+            else:
+                self._wake_lines = self._plot_ax.plot_wireframe(self._C14X, self._C14Y, self._C14Z, rstride=0)
+            
             self._plot_ax.set_aspect("equal")
             plt.pause(0.1)
 
@@ -129,7 +141,7 @@ class Wake(PanelGrid):
         control_points = wing_panels.control_points_VORING(wake_C14X.shape[0])
         wake_Gammas = np.tile(self._Gammas.reshape(1, -1), [control_points.shape[0], 1])[:, :, np.newaxis]
 
-        dV_w = Flows.VORING(wake_C14X, wake_C14Y, wake_C14Z, control_points, wake_Gammas, True, self._ground_enable)
+        dV_w = Flows.VORING(wake_C14X, wake_C14Y, wake_C14Z, control_points, wake_Gammas, self._sym, self._ground)
         V_w = np.sum(dV_w, axis=1)
 
         self._w_wake = V_w[:, 2].reshape(-1, wing_ny)
