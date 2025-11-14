@@ -6,12 +6,16 @@ from .WingPanels import WingPanels
 
 class Panels:
     def __init__(self, params: Parameters, wing_geometry: WingGeometry, Z: float, plot=False):
+        self._wake_panels = None
+        
         self._wing_geom = wing_geometry
         self._wing_panels = WingPanels(wing_geometry, Z, params.wake_dx, params.sym, params.alfa_deg, params.beta_deg)
         TE_points = self._wing_panels.extract_TE_points()
 
         self._plot_ax = self._create_plot() if plot else None
-        self._wake_panels = Wake(params.n_wake_deform, self._wing_panels._ny, params.wake_dt, TE_points, params.wake_dx, params.sym, params.ground, self._plot_ax)
+
+        if not params.wake_fixed:
+            self._wake_panels = Wake(params.n_wake_deform, self._wing_panels._ny, params.wake_dt, TE_points, params.wake_dx, params.sym, params.ground, self._plot_ax)
 
     def _create_plot(self):
         _, ax = plt.subplots(subplot_kw={"projection": "3d", "computed_zorder": False})

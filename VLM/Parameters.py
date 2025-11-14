@@ -10,6 +10,7 @@ class Parameters:
     b: float
     S: float = field(init=False)
 
+    wake_fixed: bool
     n_wake_deform: int
     wake_dt_fact: float
     wake_dx_fact: float
@@ -36,6 +37,9 @@ class Parameters:
         print(f"Ground: {self.ground}")
         print(f"V_inf: {self.V_inf:.2f} m/s (α: {self.alfa_deg:.2f}°; β: {self.beta_deg:.2f}°)")
         print(f"rho: {self.rho:.3f} kg/m³")
-        print(f"CL tolerance: {self.CL_tol:.1e}")
-        print(f"CD tolerance: {self.CD_tol:.1e}")
+
+        if not self.wake_fixed:
+            print(f"CL tolerance: {self.CL_tol:.1e}")
+            print(f"CD tolerance: {self.CD_tol:.1e}")
+            
         print()

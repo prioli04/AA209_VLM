@@ -46,7 +46,7 @@ class WingPanels(PanelGrid):
         return super().GridVector3(corners_x, corners_y, corners_z)
     
     def _rotate_wing(self, corners_x: np.ndarray, corners_y: np.ndarray, corners_z: np.ndarray):
-        c_alfa, s_alfa = np.cos(self._alfa_rad), np.sin(self._alfa_rad)
+        c_alfa, s_alfa = 1,0#np.cos(self._alfa_rad), np.sin(self._alfa_rad)
         c_beta, s_beta = np.cos(self._beta_rad), np.sin(self._beta_rad)
 
         # Alfa rotation:

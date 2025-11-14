@@ -2,6 +2,7 @@ from typing import NamedTuple
 from .Parameters import Parameters
 from .WingPanels import WingPanels
 
+import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
@@ -12,15 +13,16 @@ class Post:
         CL_CD: float
         efficiency: float
 
-    def __init__(self, CL_tol: float, CD_tol: float, sym: bool):
+    def __init__(self, CL_tol: float, CD_tol: float, sym: bool, wake_fixed: bool):
         self._result: Post.Result | None = None
         self._cursor_up = False
         self._converged = False
         self._iter = 0
         self._sym = sym
+        self._wake_fixed = wake_fixed
 
-        self._CL_tol = CL_tol
-        self._CD_tol = CD_tol
+        self._CL_tol = np.inf if wake_fixed else CL_tol
+        self._CD_tol = np.inf if wake_fixed else CD_tol
 
         self._CL_prev = 0.0
         self._CD_prev = 0.0
@@ -52,8 +54,9 @@ class Post:
             print()
             self._cursor_up = True
 
-        sys.stdout.write(ERASE_LINE)
-        sys.stdout.write(f"Iteration {self._iter}: CL_res = {self._CL_res:.5e} \t CD_res = {self._CD_res:.5e} \n")
+        if not self._wake_fixed:
+            sys.stdout.write(ERASE_LINE)
+            sys.stdout.write(f"Iteration {self._iter}: CL_res = {self._CL_res:.5e} \t CD_res = {self._CD_res:.5e} \n")
 
         for f in fields:
             sys.stdout.write(ERASE_LINE)
@@ -81,6 +84,8 @@ class Post:
             delta_L[j] = rho * V_inf * Gammas[-1, j] * delta_y
             delta_D[j] = - 0.5 * rho * w_ind[j] * Gammas[-1, j] * delta_y
 
+        # Post._plot_trefftz(C14_y[-1, :], Gammas[-1, :])
+
         L = delta_L.sum()
         D = delta_D.sum()
 
@@ -97,3 +102,10 @@ class Post:
         CL_CD = CL / CD
         efficiency = CL**2 / (CD * np.pi * AR)
         self._result = Post.Result(CL, CD, CL_CD, efficiency)
+
+    # @staticmethod
+    # def _plot_trefftz(C14_y, Gammas):
+    #     plt.figure()
+    #     plt.plot((C14_y[:-1] + C14_y[1:]) / 2.0, 2.0 * Gammas / (12.0 * 0.5))
+    #     plt.xlabel("Y [m]")
+    
