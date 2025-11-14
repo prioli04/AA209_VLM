@@ -9,9 +9,6 @@ import numpy as np
 
 class Wing(PanelGrid):
     def __init__(self, b: float, S: float, nx: int, ny: int, Z: float, sections: List[Section], wake_dx: float):
-        if len(sections) == 1:
-            sections.append(Section(1.0, sections[0].fc, sections[0].x_offset, sections[0].airfoil_path_str))
-
         self._sections = sections
         self._b = b
         self._S = S

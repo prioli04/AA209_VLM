@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class Airfoil:
-    def __init__(self, name: str, x: List[float], y: List[float]):
+    def __init__(self, name: str, x: List[float], y: List[float], xfoil_path: Path | None):
         self._name = name
         self._x_upper, self._y_upper, self._x_lower, self._y_lower = self._split_upper_lower(x, y)
         self._x_camber, self._y_camber = self._compute_camber_line()
+        self._alfa_xfoil, self._Cl_xfoil = self._read_xfoil(xfoil_path)
         # self.plot_foil()
 
     def _split_upper_lower(self,  x: List[float], y: List[float]):
@@ -58,6 +59,36 @@ class Airfoil:
 
         return x_camber, y_camber
     
+    def _read_xfoil(self, xfoil_path: Path | None):
+        if xfoil_path is None:
+            return np.empty(0), np.empty(0)
+        
+        with xfoil_path.open() as f:
+            lines = f.read().splitlines()
+
+        found_params = False
+        found_results = False
+
+        re = 0.0
+
+        for line in lines:
+            if line.startswith("Mach"):
+                tokens = line.split()
+
+                try:
+                    re_id = tokens.index("Ree")
+                    re = float("".join(tokens[re_id + 2:re_id + 5]))        
+
+                except ValueError:
+                    raise ValueError("Could not find the Reynolds number of the run. Check file provided!")
+
+        if not found_params:
+            raise ValueError("Could not find run parameters information. Check file provided!")
+        
+        if not found_results:
+            raise ValueError("Could not find results. Check file provided")
+
+    
     def get_camber_line(self, x_vals: np.ndarray, chord: float, twist_deg: float):
         rot_angle = -np.deg2rad(twist_deg)
 
@@ -94,7 +125,7 @@ class Airfoil:
         plt.show(block=False)
 
     @staticmethod
-    def read(airfoil_path: Path):
+    def read(airfoil_path: Path, xfoil_path: Path):
         with airfoil_path.open() as f:
             lines = f.read().splitlines()
 
@@ -122,4 +153,4 @@ class Airfoil:
                 x.append(x_num)
                 y.append(y_num)
 
-        return Airfoil(name, x, y)
+        return Airfoil(name, x, y, xfoil_path)
