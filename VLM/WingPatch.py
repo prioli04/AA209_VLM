@@ -18,20 +18,22 @@ class WingPatch:
         self._section_right: Section | None = None
 
     def _discretize_vals(self, x_min: float, x_max: float, n: int, disc_type: DiscretizationType):
+        x_uniform = np.linspace(0.0, 1.0, n)
+        theta = x_uniform * np.pi
+
         if disc_type == DiscretizationType.UNIFORM:
-            return np.linspace(x_min, x_max, n)
+            x = x_uniform
         
         elif disc_type == DiscretizationType.COSINE:
-            x = np.linspace(0.0, np.pi, n)
-            return ((x_max - x_min) / 2.0) * (np.cos(x + np.pi) + 1.0) + x_min
+            x = (1.0 - np.cos(theta)) / 2.0
 
         elif disc_type == DiscretizationType.SINE:
-            x = np.linspace(0.0, np.pi / 2.0, n)
-            return (x_max - x_min) * (np.sin(x - np.pi / 2.0) + 1.0) + x_min
+            x = 1 - np.cos(theta / 2.0)
         
         elif disc_type == DiscretizationType.MINUS_SINE:
-            x = np.linspace(0.0, np.pi / 2.0, n)
-            return -(x_max - x_min) * np.sin(x + np.pi) + x_min
+            x = np.sin(theta / 2.0)
+        
+        return (x_max - x_min) * x + x_min
 
     def _apply_sections(self, root: Section, tip: Section, corners_x: np.ndarray, corners_y: np.ndarray, corners_z: np.ndarray, wing_root_chord: float, wing_semi_span: float):
         airfoil_root = Airfoil.read(root.airfoil_path)
