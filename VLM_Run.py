@@ -20,8 +20,8 @@ wing_geom = VLM.WingGeometry(sections, patches, b=2.5, AR=5.0)
 
 params = VLM.Parameters(
     V_inf = 12.0, 
-    alfa_deg = 0.0, 
-    beta_deg = 5.0,
+    alfa_deg = 5.0, 
+    beta_deg = 0.0,
     rho = 1.225, 
     AR = wing_geom.AR, 
     b = wing_geom.b, 
@@ -35,10 +35,10 @@ params = VLM.Parameters(
     CD_tol = 1e-5,
 
     sym=False,
-    ground=False
+    ground=True
 )
 
-Z = 0.15
+Z = 0.3
 panels = VLM.Panels(params, wing_geom, Z, plot=False)
 solver = VLM.Solver(panels, params)
 results = solver.solve()

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import numpy as np
 
 @dataclass(frozen=True)
 class Parameters:
@@ -41,5 +42,10 @@ class Parameters:
         if not self.wake_fixed:
             print(f"CL tolerance: {self.CL_tol:.1e}")
             print(f"CD tolerance: {self.CD_tol:.1e}")
-            
+
         print()
+
+    def V_inf_vec(self):
+        c_alfa, s_alfa = np.cos(np.deg2rad(self.alfa_deg)), np.sin(np.deg2rad(self.alfa_deg))
+        c_beta, s_beta = np.cos(np.deg2rad(self.beta_deg)), np.sin(np.deg2rad(self.beta_deg))
+        return self.V_inf * np.array([c_alfa * c_beta, s_beta, s_alfa * c_beta])

@@ -34,7 +34,7 @@ class Solver:
         t0 = time.time()
 
         inv_AIC = np.linalg.inv(self._AIC)
-        d_wake = self._params.wake_dt * self._params.V_inf * np.array([1.0, 0.0, 0.0])
+        d_wake = self._params.wake_dt * self._params.V_inf_vec()
 
         while not self._post.is_converged():
             self._update_RHS()
@@ -82,7 +82,7 @@ class Solver:
                 self._B_trefftz[i, j] = Solver.bij_trefftz(CP, P1, P2, 1.0, self._params.sym, self._params.ground)
 
     def _update_RHS(self):
-        V_inf_vec = self._params.V_inf * np.array([np.cos(np.deg2rad(self._params.alfa_deg)), 0.0, np.sin(np.deg2rad(self._params.alfa_deg))])
+        V_inf_vec = self._params.V_inf_vec()
         normals = self._wing_panels.normal_RHS()
 
         if self._wake_panels is not None:

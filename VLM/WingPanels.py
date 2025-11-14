@@ -42,33 +42,8 @@ class WingPanels(PanelGrid):
             corners_y = np.hstack([-np.flip(corners_y, axis=1), corners_y[:,1:]])
             corners_z = np.hstack([np.flip(corners_z, axis=1), corners_z[:,1:]])
 
-        corners_x, corners_y, corners_z = self._rotate_wing(corners_x, corners_y, corners_z)
         return super().GridVector3(corners_x, corners_y, corners_z)
     
-    def _rotate_wing(self, corners_x: np.ndarray, corners_y: np.ndarray, corners_z: np.ndarray):
-        c_alfa, s_alfa = 1,0#np.cos(self._alfa_rad), np.sin(self._alfa_rad)
-        c_beta, s_beta = np.cos(self._beta_rad), np.sin(self._beta_rad)
-
-        # Alfa rotation:
-        # [cos(alfa) 0 sin(alfa)
-        #     0      1     0
-        #  -sin(alfa) 0 cos(alfa)]
-
-        corners_x_rot_alfa = c_alfa * corners_x + s_alfa * corners_z
-        corners_y_rot_alfa = corners_y
-        corners_z_rot_alfa = -s_alfa * corners_x + c_alfa * corners_z
-
-        # Beta rotation:
-        # [cos(beta) -sin(beta) 0
-        #  sin(beta) cos(beta)  0
-        #      0         0      1]
-
-        corners_x_rot = c_beta * corners_x_rot_alfa - s_beta * corners_y_rot_alfa
-        corners_y_rot = s_beta * corners_x_rot_alfa + c_beta * corners_y_rot_alfa 
-        corners_z_rot = corners_z_rot_alfa
-
-        return corners_x_rot, corners_y_rot, corners_z_rot
-
     def update_w_ind_trefftz(self, w_ind: np.ndarray):
         self._w_ind_trefftz[:] = w_ind
 
