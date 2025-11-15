@@ -102,20 +102,20 @@ class Solver:
             P_sym = P * np.array([1.0, -1.0, 1.0])
             V_ind_trefftz1 = Flows.VOR2D(P1[1], P1[2], P_sym[1], P_sym[2], Gamma)
             V_ind_trefftz2 = Flows.VOR2D(P2[1], P2[2], P_sym[1], P_sym[2], Gamma)
-            V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([1.0, -1.0, 1.0])
+            V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([-1.0, 1.0])
 
             if ground:
                 P_ground_sym = P_sym * np.array([1.0, 1.0, -1.0])
 
                 V_ind_trefftz1 = Flows.VOR2D(P1[1], P1[2], P_ground_sym[1], P_ground_sym[2], Gamma)
                 V_ind_trefftz2 = Flows.VOR2D(P2[1], P2[2], P_ground_sym[1], P_ground_sym[2], Gamma)
-                V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([1.0, -1.0, -1.0])
+                V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([-1.0, -1.0])
 
         if ground:
             P_ground = P * np.array([1.0, 1.0, -1.0])
 
             V_ind_trefftz1 = Flows.VOR2D(P1[1], P1[2], P_ground[1], P_ground[2], Gamma)
             V_ind_trefftz2 = Flows.VOR2D(P2[1], P2[2], P_ground[1], P_ground[2], Gamma)
-            V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([1.0, 1.0, -1.0])
+            V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([1.0, -1.0])
 
-        return V_ind[2]
+        return V_ind[1]

@@ -6,7 +6,7 @@ import VLM
 from VLM.WingPatch import DiscretizationType
 
 sections = [
-    VLM.Section(fy_pos=0.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat"),
+    VLM.Section(fy_pos=0.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
     VLM.Section(fy_pos=0.5, fc=1.0 ,x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat"),
     VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat")
 ]
@@ -39,9 +39,12 @@ params = VLM.Parameters(
 )
 
 Z = 0.3
-panels = VLM.Panels(params, wing_geom, Z, plot=False)
-solver = VLM.Solver(panels, params)
-results = solver.solve()
+# panels = VLM.Panels(params, wing_geom, Z, plot=False)
+# solver = VLM.Solver(panels, params)
+# results = solver.solve()
+
+decamb = VLM.Decambering(sections[0], 20)
+decamb.solve(18.2)
 
 input("Press any key to exit.")
 # cProfile.run("solver.solve()")

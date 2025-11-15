@@ -8,7 +8,7 @@ class Airfoil:
         self._name = name
         self._x_upper, self._y_upper, self._x_lower, self._y_lower = self._split_upper_lower(x, y)
         self._x_camber, self._y_camber = self._compute_camber_line()
-        self._alfa_xfoil, self._Cl_xfoil = self._read_xfoil(xfoil_path)
+        self._alfa_visc, self._Cl_visc, self._Cm_visc = self._read_xfoil(xfoil_path)
         # self.plot_foil()
 
     def _split_upper_lower(self,  x: List[float], y: List[float]):
@@ -60,35 +60,60 @@ class Airfoil:
         return x_camber, y_camber
     
     def _read_xfoil(self, xfoil_path: Path | None):
-        if xfoil_path is None:
-            return np.empty(0), np.empty(0)
-        
-        with xfoil_path.open() as f:
-            lines = f.read().splitlines()
+        alfas = np.empty(0)
+        cls = np.empty(0)
+        cms = np.empty(0)
 
-        found_params = False
-        found_results = False
+        if xfoil_path is not None:
+            with xfoil_path.open() as f:
+                lines = f.read().splitlines()
 
-        re = 0.0
+            found_params = False
+            found_results = False
 
-        for line in lines:
-            if line.startswith("Mach"):
+            for line in lines:
+                line = line.strip()
                 tokens = line.split()
 
-                try:
-                    re_id = tokens.index("Ree")
-                    re = float("".join(tokens[re_id + 2:re_id + 5]))        
+                if found_params and found_results and "--" not in line:
+                    try:
+                        alfas = np.hstack([alfas, float(tokens[alfa_id])]) 
+                        cls = np.hstack([cls, float(tokens[cl_id])]) 
+                        cms = np.hstack([cms, float(tokens[cm_id])]) 
 
-                except ValueError:
-                    raise ValueError("Could not find the Reynolds number of the run. Check file provided!")
+                    except ValueError:
+                        raise ValueError("Could not parse result values. Check file provided!")
 
-        if not found_params:
-            raise ValueError("Could not find run parameters information. Check file provided!")
-        
-        if not found_results:
-            raise ValueError("Could not find results. Check file provided")
+                if line.startswith("Mach"):
+                    try:
+                        re_id = tokens.index("Re")
+                        n_crit_id = tokens.index("Ncrit")
+                        re = float("".join(tokens[re_id + 2:n_crit_id]))        
 
-    
+                    except ValueError:
+                        raise ValueError("Could not parse the Reynolds number of the run. Check file provided!")
+
+                    found_params = True
+
+                if line.startswith("alpha"):
+                    try:
+                        alfa_id = tokens.index("alpha")
+                        cl_id = tokens.index("CL")
+                        cm_id = tokens.index("CM")
+
+                    except ValueError:
+                        raise ValueError("Could not find alfa or Cl columns. Check file provided!")
+                    
+                    found_results = True
+
+            if not found_params:
+                raise ValueError("Could not find run parameters information. Check file provided!")
+            
+            if not found_results:
+                raise ValueError("Could not find results. Check file provided")
+
+        return alfas, cls, cms
+
     def get_camber_line(self, x_vals: np.ndarray, chord: float, twist_deg: float):
         rot_angle = -np.deg2rad(twist_deg)
 
@@ -110,6 +135,9 @@ class Airfoil:
             camber_z[i] = Py_rot
 
         return camber_x * chord, camber_z * chord
+    
+    def get_visc_coefs(self):
+        return self._alfa_visc, self._Cl_visc, self._Cm_visc
         
     def plot_foil(self):
         fig = plt.figure()
@@ -125,7 +153,7 @@ class Airfoil:
         plt.show(block=False)
 
     @staticmethod
-    def read(airfoil_path: Path, xfoil_path: Path):
+    def read(airfoil_path: Path, xfoil_path: Path | None = None):
         with airfoil_path.open() as f:
             lines = f.read().splitlines()
 

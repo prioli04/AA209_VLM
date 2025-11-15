@@ -55,13 +55,13 @@ class Flows:
 
     @classmethod
     def VOR2D(cls, x0: float, z0: float, x: float, z: float, Gamma: float):
-        V = np.array([0.0, 0.0, 0.0])
+        V = np.array([0.0, 0.0])
         r2 = (x - x0)**2 + (z - z0)**2
 
         if r2 > cls.__eps:
             u = (Gamma / (2 * np.pi * r2)) * (z - z0)
             w = - (Gamma / (2 * np.pi * r2)) * (x - x0)
-            V[1], V[2]  = u, w
+            V[0], V[1] = u, w
 
         return V
 
