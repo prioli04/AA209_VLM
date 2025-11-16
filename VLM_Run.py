@@ -27,24 +27,17 @@ params = VLM.Parameters(
     b = wing_geom.b, 
 
     wake_fixed = True,
-    n_wake_deform = 5, 
-    wake_dt_fact = 0.5, 
-    wake_dx_fact = 0.3,
-
-    CL_tol = 1e-4,
-    CD_tol = 1e-5,
-
-    sym=False,
-    ground=True
+    sym = False,
+    ground = True,
+    Z = 0.3
 )
 
-Z = 0.3
-# panels = VLM.Panels(params, wing_geom, Z, plot=False)
-# solver = VLM.Solver(panels, params)
-# results = solver.solve()
+panels = VLM.Panels(params, wing_geom, plot=False)
+solver = VLM.Solver(panels, params)
+results = solver.solve()
 
-decamb = VLM.Decambering(sections[0], 20)
-decamb.solve(18.2)
+# decamb = VLM.Decambering(sections[0], 20)
+# decamb.solve(18.2)
 
 input("Press any key to exit.")
 # cProfile.run("solver.solve()")
