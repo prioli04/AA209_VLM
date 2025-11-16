@@ -21,6 +21,7 @@ class WingPanels(PanelGrid):
         self._MAC = wing_geometry.MAC
 
         self._points = self._compute_points(Z)
+        self._chords = self._compute_chords()
         nx, ny = self._points.X.shape[0] - 1, self._points.X.shape[1] - 1
 
         super().__init__(nx, ny, self._points, wake_dx=wake_dx)
@@ -44,11 +45,26 @@ class WingPanels(PanelGrid):
 
         return super().GridVector3(corners_x, corners_y, corners_z)
     
+    def _compute_chords(self):
+        chords_wing = np.empty(0)
+
+        for patch in self._patches:
+            chords_patch = patch.compute_chords(self._root_chord)
+            chords_wing = np.hstack((chords_wing[:, :-1], chords_patch)) if chords_wing.size != 0 else chords_patch
+
+        if not self._sym:
+            chords_wing = np.hstack([np.flip(chords_wing), chords_wing[1:]])
+
+        return chords_wing
+
     def update_w_ind_trefftz(self, w_ind: np.ndarray):
         self._w_ind_trefftz[:] = w_ind
 
     def update_Gammas(self, Gammas: np.ndarray):
         self._Gammas[:] = Gammas
+
+    def get_chords(self):
+        return self._chords
 
     def extract_TE_points(self):
         return super().GridVector3(self._C14X[-1, :], self._C14Y[-1, :], self._C14Z[-1, :])

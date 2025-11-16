@@ -1,3 +1,4 @@
+from .Decambering import Decambering
 from .Flows import Flows
 from .Panels import Panels
 from .Parameters import Parameters
@@ -21,7 +22,8 @@ class Solver:
         self._RHS: np.ndarray = np.zeros((self._n_wing_panels, 1))
 
         self._compute_aerodynamic_influence()
-        self._post = Post(params.CL_tol, params.CD_tol, params.sym, params.wake_fixed)
+        self._post = Post(self._wing_panels, params)
+        # self._decamber = Decambering()
 
         panels.print_wing_geom()
 
@@ -47,9 +49,12 @@ class Solver:
             self._wing_panels.update_Gammas(Gammas)
             self._wing_panels.update_w_ind_trefftz(w_ind)
             
-            self._post.compute_coefficients(self._wing_panels, self._params, Gammas, w_ind)
+            self._post.compute_coefficients(Gammas, w_ind)
             self._post.print_results()
 
+            # if self._params.decambering:
+            #     self._decamber_wing()
+                
             if self._wake_panels is not None:
                 self._wake_panels.wake_rollup(self._wing_C14X, self._wing_C14Y, self._wing_C14Z, Gammas, d_wake)
 
@@ -91,6 +96,12 @@ class Solver:
 
         else:
             self._RHS[:] = -np.sum(V_inf_vec * normals, axis=1).reshape(-1, 1)
+
+    # def _decamber_wing(self):
+    #     Cl_sec, _ = self._post.get_sectional_results()
+    #     alfa_sec = self._decamber.compute_alfa_sec(Cl_sec)
+        
+    #     F = self._wing_panels.compute_decambering_residuals(Cl_sec, np.zeros_like(Cl_sec), alfa_sec)
 
     @staticmethod
     def bij_trefftz(P: np.ndarray, P1: np.ndarray, P2: np.ndarray, Gamma: float, sym: bool, ground: bool):
