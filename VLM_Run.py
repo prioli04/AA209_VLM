@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 
 sections = [
     VLM.Section(fy_pos=0.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
-    VLM.Section(fy_pos=0.5, fc=1.0 ,x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat"),
-    VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat")
+    VLM.Section(fy_pos=0.5, fc=1.0 ,x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
+    VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT")
 ]
 
 patches = [
@@ -33,26 +33,33 @@ params = VLM.Parameters(
     wake_fixed = True,
     sym = False,
     ground = True,
+    decambering=False,
     Z = 0.3
 )
 
-# panels = VLM.Panels(wing_geom, params, plot=False)
-# solver = VLM.Solver(panels, params)
-# results = solver.solve()
+panels = VLM.Panels(wing_geom, params, plot=False)
+solver = VLM.Solver(panels, params)
+results = solver.solve()
 
-alfas = np.linspace(0.0, 20.0, 21)
-Cl = np.zeros_like(alfas)
-Cm = np.zeros_like(alfas)
-decamb = VLM.Decambering(sections[0], 20, params)
+# alfas = np.linspace(0.0, 20.0, 21)
+# Cl = np.zeros_like(alfas)
+# Cm = np.zeros_like(alfas)
+# decamb = VLM.Decambering(sections[0], 20, params)
 
-for (i, alfa) in enumerate(alfas):
-    Cl[i], Cm[i] = decamb.solve(alfa)
+# for (i, alfa) in enumerate(alfas):
+#     Cl[i], Cm[i] = decamb.solve(alfa)
     
-plt.figure()
-plt.plot(decamb._alfa_visc, decamb._Cl_visc, label="XFOIL")
-plt.plot(alfas, Cl, label="Decambering")
-plt.legend()
-plt.show()
+# plt.figure()
+# plt.plot(decamb._alfa_visc, decamb._Cl_visc, label="XFOIL")
+# plt.plot(alfas, Cl, label="Decambering")
+# plt.legend()
+# plt.show()
+
+# plt.figure()
+# plt.plot(decamb._alfa_visc, decamb._Cm_visc, label="XFOIL")
+# plt.plot(alfas, Cm, label="Decambering")
+# plt.legend()
+# plt.show()
 
 input("Press any key to exit.")
 # cProfile.run("solver.solve()")

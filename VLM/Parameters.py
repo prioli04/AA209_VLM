@@ -16,6 +16,7 @@ class Parameters:
 
     sym: bool
     ground: bool
+    decambering: bool
 
     # Optional parameters
     Z: float = 0.0
@@ -29,13 +30,15 @@ class Parameters:
     CL_tol: float = 1e-4
     CD_tol: float = 1e-5
 
-    Decamb_Cl_tol: float = 1e-4
-    Decamb_Cm_tol: float = 1e-5
-    Decamb_x2: float = 0.8
-    Decamb_max_iter: int = 10
+    decamb_Cl_tol: float = 1e-4
+    decamb_Cm_tol: float = 1e-5
+    decamb_x2: float = 0.8
+    decamb_theta2: float = field(init=False)
+    decamb_max_iter: int = 10
     
     def __post_init__(self):
         super().__setattr__("S", self.b**2 / self.AR)
+        super().__setattr__("decamb_theta2", np.acos(1.0 - 2.0 * self.decamb_x2))
 
         MGC = self.b / self.AR
         super().__setattr__("wake_dt", self.wake_dt_fact * MGC / self.V_inf)

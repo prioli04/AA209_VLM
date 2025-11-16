@@ -6,19 +6,21 @@ import numpy as np
 
 class WingPanels(PanelGrid):
     def __init__(self, wing_geometry: WingGeometry, Z: float, wake_dx: float, sym: bool, alfa_deg: float, beta_deg: float):
-        self._patches = wing_geometry.get_patches()
-
-        if sym and beta_deg != 0.0:
-            raise ValueError("Sideslip angle is different than 0° and the symmetry flag is activated.")
-
         self._sym = sym
         self._alfa_rad = np.deg2rad(alfa_deg)
         self._beta_rad = np.deg2rad(beta_deg)
+
+        if sym and beta_deg != 0.0:
+            raise ValueError("Sideslip angle is different than 0° and the symmetry flag is activated.")
 
         self._b = wing_geometry.b
         self._S = wing_geometry.S
         self._root_chord = wing_geometry.root_chord
         self._MAC = wing_geometry.MAC
+
+        self._patches = wing_geometry.get_patches()
+        self._airfoils = wing_geometry.get_airfoils()
+        self._airfoil_ids = self._set_airfoil_ids()
 
         self._points = self._compute_points(Z)
         self._chords = self._compute_chords()
@@ -50,12 +52,23 @@ class WingPanels(PanelGrid):
 
         for patch in self._patches:
             chords_patch = patch.compute_chords(self._root_chord)
-            chords_wing = np.hstack((chords_wing[:, :-1], chords_patch)) if chords_wing.size != 0 else chords_patch
+            chords_wing = np.hstack((chords_wing, chords_patch)) if chords_wing.size != 0 else chords_patch
 
         if not self._sym:
-            chords_wing = np.hstack([np.flip(chords_wing), chords_wing[1:]])
+            chords_wing = np.hstack([np.flip(chords_wing), chords_wing])
 
         return chords_wing
+    
+    def _set_airfoil_ids(self):
+        foil_ids = []
+
+        for patch in self._patches:
+            foil_ids += [patch._root_foil_id] * patch.ny
+
+        if not self._sym:
+            foil_ids = foil_ids[::-1] + foil_ids[1:]
+
+        return foil_ids
 
     def update_w_ind_trefftz(self, w_ind: np.ndarray):
         self._w_ind_trefftz[:] = w_ind
@@ -65,6 +78,9 @@ class WingPanels(PanelGrid):
 
     def get_chords(self):
         return self._chords
+
+    def get_airfoils(self):
+        return self._airfoils, self._airfoil_ids
 
     def extract_TE_points(self):
         return super().GridVector3(self._C14X[-1, :], self._C14Y[-1, :], self._C14Z[-1, :])

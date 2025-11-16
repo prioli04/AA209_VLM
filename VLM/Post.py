@@ -48,7 +48,9 @@ class Post:
         return self._result.Cl_sec, self._result.Cd_sec
     
     def print_results(self):
-        fields = self._result._fields
+        fields = list(self._result._fields)
+        fields.remove("Cl_sec")
+        fields.remove("Cd_sec")
         N = len(fields) + 1
 
         # '\x1b' -> Start escape sequence

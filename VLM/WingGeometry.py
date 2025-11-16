@@ -1,3 +1,4 @@
+from .Airfoil import Airfoil
 from .Section import Section
 from .WingPatch import WingPatch
 from typing import List
@@ -10,26 +11,26 @@ class WingGeometry:
             raise ValueError(f"Expected {len(patches) + 1} sections, but {len(sections)} were given.")
         
         self._patches = patches
+        self._airfoils = [Airfoil.read(section.airfoil_path, section.xfoil_path) for section in sections]
 
         for i in range(len(patches)):
-            self._patches[i].set_left_section(sections[i])
-            self._patches[i].set_right_section(sections[i + 1])
+            self._patches[i].set_root_tip(i, sections, self._airfoils)
 
         self.b = b
         self.AR = AR
         self.S = b**2 / AR
         self.root_chord = self._compute_root_chord()
         self.MAC = self._compute_MAC()
-        self.taper_ratio = self._patches[-1].right_section().fc
+        self.taper_ratio = self._patches[-1].tip().fc
         self.C14_sweep = self._compute_C14_sweep() 
 
     def _compute_root_chord(self):
         sum_fS = 0.0
 
         for patch in self._patches:
-            b_i = (self.b / 2.0) * (patch.right_section().fy_pos - patch.left_section().fy_pos)
-            fcr_i = patch.left_section().fc
-            fct_i = patch.right_section().fc
+            b_i = (self.b / 2.0) * (patch.tip().fy_pos - patch.root().fy_pos)
+            fcr_i = patch.root().fc
+            fct_i = patch.tip().fc
 
             sum_fS += b_i * (fcr_i + fct_i) / 2.0
 
@@ -39,9 +40,9 @@ class WingGeometry:
         sum_Si_MACi = 0.0
         
         for patch in self._patches:
-            b_i = (self.b / 2.0) * (patch.right_section().fy_pos - patch.left_section().fy_pos)
-            fcr_i = patch.left_section().fc
-            fct_i = patch.right_section().fc
+            b_i = (self.b / 2.0) * (patch.tip().fy_pos - patch.root().fy_pos)
+            fcr_i = patch.root().fc
+            fct_i = patch.tip().fc
 
             t_i = fct_i / fcr_i
             S_i = b_i * self.root_chord * (fcr_i + fct_i) / 2.0
@@ -53,7 +54,7 @@ class WingGeometry:
         return sum_Si_MACi / (0.5 * self.S)
     
     def _compute_C14_sweep(self):
-        root, tip = self._patches[0].left_section(), self._patches[-1].right_section()
+        root, tip = self._patches[0].root(), self._patches[-1].tip()
 
         xC14_root = 0.25 * self.root_chord * root.fc + root.x_offset
         xC14_tip = 0.25 * self.root_chord * tip.fc + tip.x_offset
@@ -65,6 +66,9 @@ class WingGeometry:
 
     def get_patches(self):
         return self._patches
+    
+    def get_airfoils(self):
+        return self._airfoils
 
     def print_wing_geom(self):
         print("===== Wing Geometry =====")
