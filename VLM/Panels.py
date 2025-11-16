@@ -5,7 +5,7 @@ from .WingGeometry import WingGeometry
 from .WingPanels import WingPanels
 
 class Panels:
-    def __init__(self, params: Parameters, wing_geometry: WingGeometry, plot=False):
+    def __init__(self, wing_geometry: WingGeometry, params: Parameters, plot=False):
         self._wake_panels = None
         
         self._wing_geom = wing_geometry

@@ -9,6 +9,7 @@ class Parameters:
     rho: float
     AR: float
     b: float
+    MAC: float
     S: float = field(init=False)
 
     wake_fixed: bool
@@ -22,7 +23,6 @@ class Parameters:
     n_wake_deform: int = 10
     wake_dt_fact: float = 0.5
     wake_dx_fact: float = 0.3
-
     wake_dt: float = field(init=False)
     wake_dx: float = field(init=False)
 
@@ -31,6 +31,8 @@ class Parameters:
 
     Decamb_Cl_tol: float = 1e-4
     Decamb_Cm_tol: float = 1e-5
+    Decamb_x2: float = 0.8
+    Decamb_max_iter: int = 10
     
     def __post_init__(self):
         super().__setattr__("S", self.b**2 / self.AR)

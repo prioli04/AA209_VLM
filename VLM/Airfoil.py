@@ -6,13 +6,19 @@ import numpy as np
 class Airfoil:
     def __init__(self, name: str, x: List[float], y: List[float], xfoil_path: Path | None):
         self._name = name
-        self._x_upper, self._y_upper, self._x_lower, self._y_lower = self._split_upper_lower(x, y)
+        self._x_upper, self._y_upper, self._x_lower, self._y_lower = self._split_upper_lower(np.array(x), np.array(y))
         self._x_camber, self._y_camber = self._compute_camber_line()
         self._alfa_visc, self._Cl_visc, self._Cm_visc = self._read_xfoil(xfoil_path)
         # self.plot_foil()
 
-    def _split_upper_lower(self,  x: List[float], y: List[float]):
+    def _split_upper_lower(self,  x: np.ndarray, y: np.ndarray):
         eps = 1e-6
+
+        x_min = np.min(x)
+        x_max = np.max(x)
+
+        x -= x_min
+        chord = x_max - x_min
 
         x_upper: List[float] = []
         y_upper: List[float] = []
@@ -32,12 +38,14 @@ class Airfoil:
                     y_upper.append(0.0)  
 
             if upper:
-                x_upper.append(x[i])
-                y_upper.append(y[i])
+                x_upper.append(x[i] / chord)
+                y_upper.append(y[i] / chord)
 
             else:
-                x_lower.append(x[i])
-                y_lower.append(y[i])
+                x_lower.append(x[i] / chord)
+                y_lower.append(y[i] / chord)
+
+
 
         x_upper.reverse()
         y_upper.reverse()
@@ -68,8 +76,8 @@ class Airfoil:
             with xfoil_path.open() as f:
                 lines = f.read().splitlines()
 
-            found_params = False
-            found_results = False
+            found_params, found_results = False, False
+            alfa_id, cl_id, cm_id = 0, 0, 0
 
             for line in lines:
                 line = line.strip()
