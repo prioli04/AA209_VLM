@@ -9,7 +9,7 @@ class Panels:
         self._wake_panels = None
         
         self._wing_geom = wing_geometry
-        self._wing_panels = WingPanels(wing_geometry, params.Z, params.wake_dx, params.sym, params.alfa_deg, params.beta_deg)
+        self._wing_panels = WingPanels(wing_geometry, params.Z, params.wake_dx, params.sym)
         TE_points = self._wing_panels.extract_TE_points()
 
         self._plot_ax = self._create_plot() if plot else None

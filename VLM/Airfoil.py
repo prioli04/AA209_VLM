@@ -9,6 +9,7 @@ class Airfoil:
         self._x_upper, self._y_upper, self._x_lower, self._y_lower = self._split_upper_lower(np.array(x), np.array(y))
         self._x_camber, self._y_camber = self._compute_camber_line()
         self._alfa_visc, self._Cl_visc, self._Cm_visc = self._read_xfoil(xfoil_path)
+        self._alfa0 = self._compute_alfa0()
         # self.plot_foil()
 
     def _split_upper_lower(self,  x: np.ndarray, y: np.ndarray):
@@ -122,11 +123,18 @@ class Airfoil:
 
         return alfas, cls, cms
 
+    def _compute_alfa0(self):
+        closest_id = np.argmin(np.abs(self._Cl_visc))
+        return np.interp(self._Cl_visc[closest_id], self._Cl_visc, self._alfa_visc)
+
+    def get_raw_camber_line(self):
+        return self._x_camber, self._y_camber
+
     def get_camber_line(self, x_vals: np.ndarray, chord: float, twist_deg: float):
         rot_angle = -np.deg2rad(twist_deg)
 
         camber_x = np.zeros_like(x_vals)
-        camber_z = np.zeros_like(x_vals)
+        camber_y = np.zeros_like(x_vals)
 
         for (i, x) in enumerate(x_vals):
             idx = np.searchsorted(self._x_camber, x, side="right")
@@ -140,12 +148,12 @@ class Airfoil:
             Py_rot = Px * np.sin(rot_angle) + Py * np.cos(rot_angle)
 
             camber_x[i] = Px_rot + 0.25
-            camber_z[i] = Py_rot
+            camber_y[i] = Py_rot
 
-        return camber_x * chord, camber_z * chord
+        return camber_x * chord, camber_y * chord
     
     def get_visc_coefs(self):
-        return self._alfa_visc, self._Cl_visc, self._Cm_visc
+        return self._alfa_visc, self._Cl_visc, self._Cm_visc, self._alfa0
         
     def plot_foil(self):
         fig = plt.figure()

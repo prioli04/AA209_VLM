@@ -15,15 +15,15 @@ sections = [
 ]
 
 patches = [
-    VLM.WingPatch(12, 24, DiscretizationType.UNIFORM, DiscretizationType.UNIFORM),
-    VLM.WingPatch(12, 24, DiscretizationType.UNIFORM, DiscretizationType.UNIFORM)
+    VLM.WingPatch(12, 16, DiscretizationType.COSINE, DiscretizationType.UNIFORM),
+    VLM.WingPatch(12, 32, DiscretizationType.COSINE, DiscretizationType.MINUS_SINE)
 ]
 
-wing_geom = VLM.WingGeometry(sections, patches, b=2.5, AR=5.0)
+wing_geom = VLM.WingGeometry(sections, patches, b=2.5, AR=10.0)
 
 params = VLM.Parameters(
     V_inf = 12.0, 
-    alfa_deg = 5.0, 
+    alfa_deg = 20.0, 
     beta_deg = 0.0,
     rho = 1.225, 
     AR = wing_geom.AR, 
@@ -31,35 +31,34 @@ params = VLM.Parameters(
     MAC = wing_geom.MAC,
 
     wake_fixed = True,
-    sym = False,
-    ground = True,
-    decambering=False,
+    sym = True,
+    ground = False,
+    decambering=True,
     Z = 0.3
 )
 
-panels = VLM.Panels(wing_geom, params, plot=False)
-solver = VLM.Solver(panels, params)
-results = solver.solve()
+alfas = np.linspace(0.0, 20.0, 21)
+panels = VLM.Panels(wing_geom, params, plot=True)
+# solver = VLM.Solver(panels, params)
+CL_pot = np.zeros_like(alfas)
+CL_visc = np.zeros_like(alfas)
 
-# alfas = np.linspace(0.0, 20.0, 21)
-# Cl = np.zeros_like(alfas)
-# Cm = np.zeros_like(alfas)
-# decamb = VLM.Decambering(sections[0], 20, params)
+for i in range(len(alfas)):
+    params.decambering = False
+    params.alfa_deg = alfas[i]
+    solver = VLM.Solver(panels, params)
+    results = solver.solve()
+    CL_pot[i] = results.CL
 
-# for (i, alfa) in enumerate(alfas):
-#     Cl[i], Cm[i] = decamb.solve(alfa)
-    
-# plt.figure()
-# plt.plot(decamb._alfa_visc, decamb._Cl_visc, label="XFOIL")
-# plt.plot(alfas, Cl, label="Decambering")
-# plt.legend()
-# plt.show()
+    params.decambering = True
+    solver = VLM.Solver(panels, params)
+    results = solver.solve()
+    CL_visc[i] = results.CL
 
-# plt.figure()
-# plt.plot(decamb._alfa_visc, decamb._Cm_visc, label="XFOIL")
-# plt.plot(alfas, Cm, label="Decambering")
-# plt.legend()
-# plt.show()
+plt.figure()
+plt.plot(alfas, CL_pot, label="Potential")
+plt.plot(alfas, CL_visc, label="Decambered")
+plt.show()
 
 input("Press any key to exit.")
 # cProfile.run("solver.solve()")

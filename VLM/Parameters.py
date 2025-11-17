@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import numpy as np
 
-@dataclass(frozen=True)
+@dataclass
 class Parameters:
     V_inf: float
     alfa_deg: float

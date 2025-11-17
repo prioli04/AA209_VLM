@@ -115,6 +115,17 @@ class Post:
         efficiency = CL**2 / (CD * np.pi * self._AR)
         self._result = Post.Result(Cl_sec, Cd_sec, CL, CD, CL_CD, efficiency)
 
+    def compute_coefficients_decambering(self, Gammas: np.ndarray):
+        ny = Gammas.shape[1]
+        delta_L = np.zeros(ny)
+        Cl_sec = np.zeros(ny)
+
+        for j in range(ny):
+            delta_L[j] = self._rho * self._V_inf * Gammas[-1, j] * self._delta_y[j]
+            Cl_sec[j] = delta_L[j] / (0.5 * self._rho * self._V_inf**2 * self._delta_y[j] * self._chords[j])
+
+        return Cl_sec
+
     # @staticmethod
     # def _plot_trefftz(C14_y, Gammas):
     #     plt.figure()

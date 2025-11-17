@@ -1,18 +1,14 @@
 from .PanelGrid import PanelGrid
 from .WingGeometry import WingGeometry
 from mpl_toolkits.mplot3d.axes3d import Axes3D # type: ignore[import-untyped]
+from typing import List
 
 import numpy as np
 
 class WingPanels(PanelGrid):
-    def __init__(self, wing_geometry: WingGeometry, Z: float, wake_dx: float, sym: bool, alfa_deg: float, beta_deg: float):
+    def __init__(self, wing_geometry: WingGeometry, Z: float, wake_dx: float, sym: bool):
         self._sym = sym
-        self._alfa_rad = np.deg2rad(alfa_deg)
-        self._beta_rad = np.deg2rad(beta_deg)
-
-        if sym and beta_deg != 0.0:
-            raise ValueError("Sideslip angle is different than 0° and the symmetry flag is activated.")
-
+        
         self._b = wing_geometry.b
         self._S = wing_geometry.S
         self._root_chord = wing_geometry.root_chord
@@ -59,14 +55,14 @@ class WingPanels(PanelGrid):
 
         return chords_wing
     
-    def _set_airfoil_ids(self):
+    def _set_airfoil_ids(self) -> List[int]:
         foil_ids = []
 
         for patch in self._patches:
             foil_ids += [patch._root_foil_id] * patch.ny
 
         if not self._sym:
-            foil_ids = foil_ids[::-1] + foil_ids[1:]
+            foil_ids = foil_ids[::-1] + foil_ids
 
         return foil_ids
 
