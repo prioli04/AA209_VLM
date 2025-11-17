@@ -1,15 +1,12 @@
-from .Airfoil import Airfoil
-from .Flows import Flows
 from .Parameters import Parameters
 from .WingPanels import WingPanels
-from scipy.optimize import bisect # type: ignore[import-untyped]
+from scipy.optimize import root_scalar # type: ignore[import-untyped]
 from typing import List
 
 import numpy as np
 
-
 class Decambering:
-    __p = 0.01
+    __p = 0.001
 
     def __init__(self, wing_mesh: WingPanels, params: Parameters):
         self._x2 = params.decamb_x2
@@ -99,22 +96,28 @@ class Decambering:
         Cl = np.interp(alfa_deg, self._alfa_visc[foil_id], self._Cl_visc[foil_id])
         Cm = np.interp(alfa_deg, self._alfa_visc[foil_id], self._Cm_visc[foil_id])
         return Cl, Cm
- 
-    def _find_intersection_Cl(self, alfa_s: float, Cl_s: float, alfa_p: float, Cl_p: float, sec_id: int):
+    
+    def _find_intersection_Cl(self, alfa_s: np.ndarray, Cl_s: np.ndarray, alfa_p: np.ndarray, Cl_p: np.ndarray):
         alfa_s_deg, alfa_p_deg = np.rad2deg(alfa_s), np.rad2deg(alfa_p)
-        
         a = (Cl_s - Cl_p) / (alfa_s_deg - alfa_p_deg)
         b = Cl_s - a * alfa_s_deg
-        Cl_trajectory = lambda x: a * x + b
-        Cl_visc = lambda x: self.interpolate_visc_coefs(x, sec_id)[0]
-        bisect_func = lambda x: Cl_trajectory(x) - Cl_visc(x)
 
-        alfa_intersect = bisect(bisect_func, -90.0, 90.0, xtol=1e-4)
-        return Cl_visc(alfa_intersect)
+        Cl_intersect = np.zeros(len(Cl_s))
 
-    def compute_effective_alfa(self, Cl_sec: np.ndarray):
-        alfa0 = np.array([self._alfa0[self._airfoil_ids[id_sec]] for id_sec in range(len(Cl_sec))])
-        return Cl_sec / (2.0 * np.pi) - self._delta1 - self._delta2 * (1 - (np.sin(self._theta2) - self._theta2) / np.pi) + alfa0
+        for i in range(len(Cl_s)):
+            Cl_trajectory = lambda x: a[i] * x + b[i]
+            Cl_visc = lambda x: self.interpolate_visc_coefs(x, i)[0]
+            func = lambda x: Cl_trajectory(x) - Cl_visc(x)
+
+            # alfa_intersect = bisect(func, -90.0, 90.0, xtol=1e-3)
+            alfa_intersect = root_scalar(func, method="newton", x0=alfa_s_deg[i], xtol=1e-3).root
+            Cl_intersect[i] = Cl_trajectory(alfa_intersect)
+            
+        return Cl_intersect
+
+    def compute_effective_alfa(self, Cl_sec: float, id_sec: int):
+        alfa0 = self._alfa0[self._airfoil_ids[id_sec]]
+        return Cl_sec / (2.0 * np.pi) - self._delta1[id_sec] - self._delta2[id_sec] * (1 - (np.sin(self._theta2) - self._theta2) / np.pi) + alfa0
 
     def compute_residuals_scheme1(self, Cl_sec: np.ndarray, Cm_sec: np.ndarray, alfa_sec: np.ndarray):
         Cl_visc, Cm_visc = np.zeros(len(alfa_sec)), np.zeros(len(alfa_sec))
@@ -125,8 +128,8 @@ class Decambering:
         delta_Cl, delta_Cm = Cl_sec - Cl_visc, Cm_sec - Cm_visc
         return delta_Cl
     
-    def compute_residuals_scheme2(self, alfa_s: float, Cl_s: float, alfa_p: float, Cl_p: float, sec_id: int):
-        Cl_visc = self._find_intersection_Cl(alfa_s, Cl_s, alfa_p, Cl_p, sec_id)
+    def compute_residuals_scheme2(self, alfa_s: np.ndarray, Cl_s: np.ndarray, alfa_p: np.ndarray, Cl_p: np.ndarray):
+        Cl_visc = self._find_intersection_Cl(alfa_s, Cl_s, alfa_p, Cl_p)
         delta_Cl = Cl_s - Cl_visc
         return delta_Cl
 

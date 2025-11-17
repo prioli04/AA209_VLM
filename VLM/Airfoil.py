@@ -125,7 +125,7 @@ class Airfoil:
 
     def _compute_alfa0(self):
         closest_id = np.argmin(np.abs(self._Cl_visc))
-        return np.interp(self._Cl_visc[closest_id], self._Cl_visc, self._alfa_visc)
+        return np.deg2rad(self._alfa_visc[closest_id]) - self._Cl_visc[closest_id] / (2.0 * np.pi)
 
     def get_raw_camber_line(self):
         return self._x_camber, self._y_camber
