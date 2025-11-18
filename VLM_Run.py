@@ -10,20 +10,20 @@ import matplotlib.pyplot as plt
 
 sections = [
     VLM.Section(fy_pos=0.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
-    VLM.Section(fy_pos=0.5, fc=1.0 ,x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
+    # VLM.Section(fy_pos=0.5, fc=1.0 ,x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
     VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT")
 ]
 
 patches = [
-    VLM.WingPatch(8, 16, DiscretizationType.COSINE, DiscretizationType.UNIFORM),
-    VLM.WingPatch(8, 16, DiscretizationType.COSINE, DiscretizationType.UNIFORM)
+    VLM.WingPatch(8, 40, DiscretizationType.COSINE, DiscretizationType.MINUS_SINE),
+    # VLM.WingPatch(8, 10, DiscretizationType.COSINE, DiscretizationType.MINUS_SINE)
 ]
 
 wing_geom = VLM.WingGeometry(sections, patches, b=2.5, AR=10.0)
 
 params = VLM.Parameters(
     V_inf = 12.0, 
-    alfa_deg = 20, 
+    alfa_deg = 18, 
     beta_deg = 0.0,
     rho = 1.225, 
     AR = wing_geom.AR, 
@@ -53,7 +53,7 @@ for i in range(len(alfas)):
 
     params.decambering = True
     solver = VLM.Solver(panels, params)
-    results, delta_decamber = solver.solve()
+    results, delta_decamber = solver.solve(delta_decamber)
     CL_visc[i] = results.CL
 
 plt.figure()

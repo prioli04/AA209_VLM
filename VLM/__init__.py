@@ -1,5 +1,6 @@
 from VLM.Airfoil import Airfoil
 from VLM.Decambering import Decambering
+from VLM.Decambering_Iscold import Decambering_Iscold
 from VLM.Flows import Flows
 from VLM.PanelGrid import PanelGrid
 from VLM.Panels import Panels
