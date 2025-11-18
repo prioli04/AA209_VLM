@@ -1,7 +1,9 @@
+from .Flows import Flows
 from .Parameters import Parameters
 from .WingPanels import WingPanels
 from scipy.optimize import root_scalar # type: ignore[import-untyped]
-from typing import List
+from scipy.interpolate import interp1d # type: ignore[import-untyped]
+from typing import Callable, List
 
 import numpy as np
 
@@ -16,6 +18,7 @@ class Decambering:
         self._max_iter = params.decamb_max_iter
 
         airfoils, self._airfoil_ids = wing_mesh.get_airfoils()
+        
         self._alfa_visc: List[np.ndarray] = []
         self._Cl_visc: List[np.ndarray] = []
         self._Cm_visc: List[np.ndarray] = []
@@ -40,14 +43,16 @@ class Decambering:
             camberX, camberY = airfoils[id].get_raw_camber_line()
             self._camber_lineX.append(camberX)
             self._camber_lineY.append(camberY)
-            self._nx.append(len(camberX))
+            self._nx.append(len(camberX) - 1)
 
             self._vortices_pos.append(self._compute_panel_points(camberX, camberY, 0.25))
             self._control_points.append(self._compute_panel_points(camberX, camberY, 0.75))
             self._normals.append(self._compute_normals(camberX, camberY))
 
+        self._trajectory_slopes = np.zeros(len(self._airfoil_ids))
         self._delta1, self._delta2 = np.zeros(len(self._airfoil_ids)), np.zeros(len(self._airfoil_ids))
         self._delta1_orig_id, self._delta1_orig_val = 0, 0.0
+        self._delta2_orig_id, self._delta2_orig_val = 0, 0.0
 
     def _compute_panel_points(self, pointsX: np.ndarray, pointsY: np.ndarray, frac: float):
         px = pointsX[:-1] + frac * np.diff(pointsX)
@@ -69,51 +74,63 @@ class Decambering:
     #     normals = self._compute_normals(self._camber_lineX, camber_y)
     #     return vortices_pos, control_points, normals
     
-    # def _lumped_vortex_2D(self, alfa_rad: float, vortices_pos: np.ndarray, control_points: np.ndarray, normals: np.ndarray):
-    #     AIC = np.zeros((self._nx, self._nx)) # Aerodynamic influence coefficients
-    #     RHS = np.zeros((self._nx, 1)) # Right-hand side
+    def _lumped_vortex_2D(self, nx: int, alfa_rad: float, vortices_pos: np.ndarray, control_points: np.ndarray, normals: np.ndarray):
+        AIC = np.zeros((nx, nx)) # Aerodynamic influence coefficients
+        RHS = np.zeros((nx, 1)) # Right-hand side
 
-    #     for i in range(self._nx):
-    #         x_i, y_i = control_points[:, i]
-    #         n_i = normals[:, i]
+        for i in range(nx):
+            x_i, y_i = control_points[:, i]
+            n_i = normals[:, i]
 
-    #         RHS[i] = -np.dot(np.array([np.cos(alfa_rad), np.sin(alfa_rad)]), n_i) # RHS_i = - V_inf * n_i
+            RHS[i] = -np.dot(np.array([np.cos(alfa_rad), np.sin(alfa_rad)]), n_i) # RHS_i = - V_inf * n_i
 
-    #         for j in range(self._nx):
-    #             x0_j, y0_j = vortices_pos[:, j]
-    #             q_ij = Flows.VOR2D(x0_j, y0_j, x_i, y_i, 1.0)
-    #             AIC[i, j] = np.dot(q_ij, n_i) # a_ij = q_ij(Gamma = 1.0) * n_i
+            for j in range(nx):
+                x0_j, y0_j = vortices_pos[:, j]
+                q_ij = Flows.VOR2D(x0_j, y0_j, x_i, y_i, 1.0)
+                AIC[i, j] = np.dot(q_ij, n_i) # a_ij = q_ij(Gamma = 1.0) * n_i
 
-    #     Gammas = np.linalg.solve(AIC, RHS)
+        Gammas = np.linalg.solve(AIC, RHS)
 
-    #     Cl = 2.0 * np.sum(Gammas) # Cl = 2 * sum(Gammas_i) / (V_inf * chord)
-    #     Cm_14 = -2.0 * np.cos(alfa_rad) * np.sum(Gammas.squeeze() * (vortices_pos[0, :] - 0.25)) # Cm_14 = -2 * cos(alfa) * sum(Gammas_i * (x_i - quarter_chord) / (V_inf * chord**2)
+        Cl = 2.0 * np.sum(Gammas) # Cl = 2 * sum(Gammas_i) / (V_inf * chord)
+        Cm_14 = -2.0 * np.cos(alfa_rad) * np.sum(Gammas.squeeze() * (vortices_pos[0, :] - 0.25)) # Cm_14 = -2 * cos(alfa) * sum(Gammas_i * (x_i - quarter_chord) / (V_inf * chord**2)
 
-    #     return Cl, Cm_14
+        return Cl, Cm_14
     
-    def interpolate_visc_coefs(self, alfa_deg: np.ndarray, sec_id: int):
+    def interpolate_visc_Cl(self, alfa_deg: np.ndarray, sec_id: int):
         foil_id = self._airfoil_ids[sec_id]
-        Cl = np.interp(alfa_deg, self._alfa_visc[foil_id], self._Cl_visc[foil_id])
-        Cm = np.interp(alfa_deg, self._alfa_visc[foil_id], self._Cm_visc[foil_id])
-        return Cl, Cm
+        return np.interp(alfa_deg, self._alfa_visc[foil_id], self._Cl_visc[foil_id])
+    
+    def interpolate_visc_Cm(self, alfa_deg: np.ndarray, sec_id: int):
+        foil_id = self._airfoil_ids[sec_id]
+        return np.interp(alfa_deg, self._alfa_visc[foil_id], self._Cm_visc[foil_id])
     
     def _find_intersection_Cl(self, alfa_s: np.ndarray, Cl_s: np.ndarray, alfa_p: np.ndarray, Cl_p: np.ndarray):
         alfa_s_deg, alfa_p_deg = np.rad2deg(alfa_s), np.rad2deg(alfa_p)
         a = (Cl_s - Cl_p) / (alfa_s_deg - alfa_p_deg)
         b = Cl_s - a * alfa_s_deg
 
-        Cl_intersect = np.zeros(len(Cl_s))
+        Cl_intersect, Cm_intersect = np.zeros(len(Cl_s)), np.zeros(len(Cl_s))
 
         for i in range(len(Cl_s)):
             Cl_trajectory = lambda x: a[i] * x + b[i]
-            Cl_visc = lambda x: self.interpolate_visc_coefs(x, i)[0]
+            Cl_visc = lambda x: self.interpolate_visc_Cl(x, i)
             func = lambda x: Cl_trajectory(x) - Cl_visc(x)
 
-            # alfa_intersect = bisect(func, -90.0, 90.0, xtol=1e-3)
             alfa_intersect = root_scalar(func, method="newton", x0=alfa_s_deg[i], xtol=1e-3).root
             Cl_intersect[i] = Cl_trajectory(alfa_intersect)
+            Cm_intersect[i] = self.interpolate_visc_Cm(alfa_intersect, i)
             
-        return Cl_intersect
+        return Cl_intersect, Cm_intersect
+    
+    # def _find_intersection_Cl(self, alfa_s: np.ndarray, Cl_s: np.ndarray, alfa_p: np.ndarray, Cl_p: np.ndarray):
+    #     alfa_s_deg = np.rad2deg(alfa_s)
+    #     Cl_intersect, Cm_intersect = np.zeros(len(Cl_s)), np.zeros(len(Cl_s))
+
+    #     for i in range(len(Cl_s)):
+    #         Cl_intersect[i] = self.interpolate_visc_Cl(alfa_s_deg[i], i)
+    #         Cm_intersect[i] = self.interpolate_visc_Cm(alfa_s_deg[i], i)
+            
+    #     return Cl_intersect, Cm_intersect
 
     def compute_effective_alfa(self, Cl_sec: float, id_sec: int):
         alfa0 = self._alfa0[self._airfoil_ids[id_sec]]
@@ -123,25 +140,46 @@ class Decambering:
         Cl_visc, Cm_visc = np.zeros(len(alfa_sec)), np.zeros(len(alfa_sec))
 
         for i in range(len(alfa_sec)):
-            Cl_visc[i], Cm_visc[i] = self.interpolate_visc_coefs(np.rad2deg(alfa_sec[i]), i)
+            Cl_visc[i], Cm_visc[i] = self.interpolate_visc_Cl(np.rad2deg(alfa_sec[i]), i)
         
         delta_Cl, delta_Cm = Cl_sec - Cl_visc, Cm_sec - Cm_visc
         return delta_Cl
     
-    def compute_residuals_scheme2(self, alfa_s: np.ndarray, Cl_s: np.ndarray, alfa_p: np.ndarray, Cl_p: np.ndarray):
-        Cl_visc = self._find_intersection_Cl(alfa_s, Cl_s, alfa_p, Cl_p)
-        delta_Cl = Cl_s - Cl_visc
+    def compute_residuals_scheme2(self, alfa_s: np.ndarray, Cl_s: np.ndarray, alfa_p: np.ndarray, Cl_p: np.ndarray, Cm_s: np.ndarray):
+        Cl_visc, Cm_visc = self._find_intersection_Cl(alfa_s, Cl_s, alfa_p, Cl_p)
+        delta_Cl, delta_Cm = Cl_s - Cl_visc, Cm_s - Cm_visc
+        # return np.hstack([delta_Cl, delta_Cm])
         return delta_Cl
 
-    def decamber_normals(self, normals: np.ndarray):
+    def decamber_normals(self, normals: np.ndarray, control_pointX: np.ndarray):
+        filter_delta2 = np.clip(np.sign(control_pointX - self._x2), a_min=0.0, a_max=None) * self._delta2
+
         normals_x = normals[:, 0].reshape(-1, len(self._airfoil_ids))
         normals_y = normals[:, 1].reshape(-1, len(self._airfoil_ids))
         normals_z = normals[:, 2].reshape(-1, len(self._airfoil_ids))
 
-        normals_x_rot = np.cos(-self._delta1) * normals_x - np.sin(-self._delta1) * normals_z 
-        normals_z_rot = np.sin(-self._delta1) * normals_x + np.cos(-self._delta1) * normals_z
+        normals_x_rot1 = np.cos(-self._delta1) * normals_x - np.sin(-self._delta1) * normals_z 
+        normals_z_rot1 = np.sin(-self._delta1) * normals_x + np.cos(-self._delta1) * normals_z
 
-        return np.hstack((normals_x_rot.reshape(-1, 1), normals_y.reshape(-1, 1), normals_z_rot.reshape(-1, 1)))
+        normals_x_rot2 = np.cos(-filter_delta2) * normals_x_rot1 - np.sin(-filter_delta2) * normals_z_rot1
+        normals_z_rot2 = np.sin(-filter_delta2) * normals_x_rot1 + np.cos(-filter_delta2) * normals_z_rot1
+
+        return np.hstack((normals_x_rot2.reshape(-1, 1), normals_y.reshape(-1, 1), normals_z_rot2.reshape(-1, 1)))
+
+    # def set_trajectory_slope(self, solver_func: Callable[[bool], np.ndarray], coefs_func: Callable[[np.ndarray], np.ndarray], Gammas_orig: np.ndarray):
+    #     Cl_0 = coefs_func(Gammas_orig)
+    #     alfa_0 = np.array([self.compute_effective_alfa(Cl_0[i], i) for i in range(len(Cl_0))])
+
+    #     delta_Cl = self.compute_residuals_scheme1(Cl_0, np.zeros_like(Cl_0), alfa_0)
+    #     self.update_delta1(delta_Cl)
+
+    #     Gammas_decambering = solver_func(True)
+    #     Cl_p = coefs_func(Gammas_decambering)
+    #     alfa_p = np.array([self.compute_effective_alfa(Cl_p[i], i) for i in range(len(Cl_p))])
+    #     self._trajectory_slopes = (Cl_p - Cl_0) / (alfa_p - alfa_0)
+    #     self._delta1 *= 0.0
+
+    #     return alfa_0, Cl_0
 
     def perturb_delta1_at(self, j: int):
         self._delta1_orig_id, self._delta1_orig_val = j, self._delta1[j]
@@ -151,8 +189,20 @@ class Decambering:
         self._delta1[self._delta1_orig_id] = self._delta1_orig_val
         self._delta1_orig_id, self._delta1_orig_val = 0, 0.0
 
-    def update_delta1(self, delta1: np.ndarray):
-        self._delta1 += delta1.flatten()
+    def perturb_delta2_at(self, j: int):
+        self._delta2_orig_id, self._delta2_orig_val = j, self._delta2[j]
+        self._delta2[j] += Decambering.__p
+
+    def unperturb_delta2(self):
+        self._delta2[self._delta2_orig_id] = self._delta2_orig_val
+        self._delta2_orig_id, self._delta2_orig_val = 0, 0.0
+
+    def update_deltas(self, deltas: np.ndarray):
+    #     self._delta1 += deltas[:int(len(deltas) / 2)]
+    #     self._delta2 += deltas[int(len(deltas) / 2):]
+        self._delta1 += deltas
+        self._delta1 = np.clip(self._delta1, a_min=-np.deg2rad(45.0), a_max=np.deg2rad(45.0))
+        # self._delta2 = np.clip(self._delta2, a_min=-np.deg2rad(45.0), a_max=np.deg2rad(45.0))
 
     @classmethod
     def p(cls):

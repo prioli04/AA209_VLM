@@ -35,12 +35,15 @@ class Solver:
             
         self._params.print_run_params()
 
-    def solve(self):
+    def solve(self, decamber_delta_init: np.ndarray | None = None):
+        if decamber_delta_init is not None:
+            self._decambering.update_deltas(decamber_delta_init)
+
         t0 = time.time()
         d_wake = self._params.wake_dt * self._params.V_inf_vec()
 
         while not self._post.is_converged():
-            Gammas = self._solve_linear_system()
+            Gammas = self._solve_linear_system(decambering=True)
 
             if self._params.decambering:
                 Gammas = self._decamber_wing(Gammas)
@@ -56,11 +59,12 @@ class Solver:
             if self._wake_panels is not None:
                 self._wake_panels.wake_rollup(self._wing_C14X, self._wing_C14Y, self._wing_C14Z, Gammas, d_wake)
 
-        self._post.compute_coefficients(Gammas, w_ind, plot=True)
-        self._post.plot_delta1(self._decambering._delta1)
+        # self._post.compute_coefficients(Gammas, w_ind, plot=True)
+        # self._post.plot_delta1(self._decambering._delta1)
 
         print(f"\nCompleted in {(time.time() - t0):.2f} s.")
-        return self._post.export_results()
+        # return self._post.export_results(), np.hstack([self._decambering._delta1, self._decambering._delta2])
+        return self._post.export_results(), self._decambering._delta1
     
     def _compute_aerodynamic_influence(self):
         C14X, C14Y, C14Z = self._wing_panels.C14_VORING()
@@ -93,7 +97,8 @@ class Solver:
         normals = self._wing_panels.normal_RHS()
 
         if decambering:
-            normals = self._decambering.decamber_normals(normals)
+            control_pointX = self._wing_panels.control_pointsX_chord_normalized()
+            normals = self._decambering.decamber_normals(normals, control_pointX)
 
         if self._wake_panels is not None:
             wake_influence = self._wake_panels.compute_wake_influence(self._wing_panels, self._wing_ny)
@@ -113,33 +118,43 @@ class Solver:
 
         t0 = time.time()
         while np.linalg.norm(F) > 1e-2 and iter < 200:
-            Cl_s = self._post.compute_coefficients_decambering(Gammas)
+            Cl_s, Cm_s = self._post.compute_coefficients_decambering(Gammas)
             alfa_s = np.array([self._decambering.compute_effective_alfa(Cl_s[i], i) for i in range(len(Cl_s))])
-            # F = self._decambering.compute_residuals_scheme1(Cl_s, np.zeros_like(Cl_s), alfa_s)
 
-            Jl1 = np.zeros((self._wing_ny, self._wing_ny))
+            Jl1, Jm1 = np.zeros((self._wing_ny, self._wing_ny)), np.zeros((self._wing_ny, self._wing_ny))
             alfa_p, Cl_p_own = np.zeros(self._wing_ny), np.zeros(self._wing_ny)
 
             for j in range(self._wing_ny):
                 self._decambering.perturb_delta1_at(j)
                 Gammas = self._solve_linear_system(decambering=True)
-                Cl_p = self._post.compute_coefficients_decambering(Gammas)
+                Cl_p, Cm_p = self._post.compute_coefficients_decambering(Gammas)
                 Jl1[:, j] = (Cl_p - Cl_s) / Decambering.p()
-
+                # Jm1[:, j] = (Cm_p - Cm_s) / Decambering.p()
                 Cl_p_own[j] = Cl_p[j]
                 alfa_p[j] = self._decambering.compute_effective_alfa(Cl_p_own[j], j)
                 self._decambering.unperturb_delta1()
 
-            F = self._decambering.compute_residuals_scheme2(alfa_s, Cl_s, alfa_p, Cl_p_own)
+            F = self._decambering.compute_residuals_scheme2(alfa_s, Cl_s, alfa_p, Cl_p_own, Cm_s)
+            # Jl2, Jm2 = np.zeros((self._wing_ny, self._wing_ny)), np.zeros((self._wing_ny, self._wing_ny))
 
-            delta1 = 0.1 * np.linalg.solve(Jl1, -F)
-            self._decambering.update_delta1(delta1)
+            # for j in range(self._wing_ny):
+            #     self._decambering.perturb_delta2_at(j)
+            #     Gammas = self._solve_linear_system(decambering=True)
+            #     Cl_p, Cm_p = self._post.compute_coefficients_decambering(Gammas)
+            #     Jl2[:, j] = (Cl_p - Cl_s) / Decambering.p()
+            #     Jm2[:, j] = (Cm_p - Cm_s) / Decambering.p()
+            #     self._decambering.unperturb_delta2()
+
+            # J1, J2 = np.vstack([Jl1, Jm1]), np.vstack([Jl2, Jm2])
+            # J = np.hstack([J1, J2])
+            deltas = 0.1 * np.linalg.solve(Jl1, -F)
+            self._decambering.update_deltas(deltas)
             Gammas = self._solve_linear_system(decambering=True)
             print(np.linalg.norm(F))
             iter += 1
 
-        if iter >= 200:
-            Gammas = np.zeros_like(Gammas)
+        # if iter >= 200:
+        #     Gammas = np.zeros_like(Gammas)
             
         print(f"\nDecambering took {(time.time() - t0):.2f} s.")
         return Gammas

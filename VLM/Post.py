@@ -29,6 +29,7 @@ class Post:
         self._S = params.S
 
         _, self._C14_y, _ = wing_mesh.get_C14()
+        self._vortices_x, _, _ = wing_mesh.get_control_points()
         self._delta_y = np.abs(np.diff(self._C14_y[-1, :]))
         self._chords = wing_mesh.get_chords()
 
@@ -120,12 +121,17 @@ class Post:
         ny = Gammas.shape[1]
         delta_L = np.zeros(ny)
         Cl_sec = np.zeros(ny)
+        Cm_sec = np.zeros(ny)
 
         for j in range(ny):
             delta_L[j] = self._rho * self._V_inf * Gammas[-1, j] * self._delta_y[j]
             Cl_sec[j] = delta_L[j] / (0.5 * self._rho * self._V_inf**2 * self._delta_y[j] * self._chords[j])
 
-        return Cl_sec
+            for i in range(Gammas.shape[0]):
+                g = Gammas[i, j] - Gammas[i - 1, j] if i > 0 else Gammas[0, j]
+                Cm_sec[j] = -2.0 * np.cos(0.0) * np.sum(g * (self._vortices_x[:, j] - 0.25 * self._chords[j])) / (self._V_inf * self._chords[j]**2)
+
+        return Cl_sec, Cm_sec
 
     # @staticmethod
     def _plot_trefftz(self):

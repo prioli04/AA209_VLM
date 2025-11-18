@@ -107,6 +107,9 @@ class WingPanels(PanelGrid):
         CPZ = self._control_pointZ[-1, :].reshape(-1, 1)
         return np.hstack((CPX, CPY, CPZ))
 
+    def control_pointsX_chord_normalized(self):
+        return self._control_pointX / self._chords
+
     def normal_RHS(self):
         normalX = self._normalX.reshape(-1, 1)
         normalY = self._normalY.reshape(-1, 1)

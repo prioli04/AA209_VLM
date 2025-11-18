@@ -89,6 +89,9 @@ class PanelGrid:
     def get_C14(self):
         return PanelGrid.GridVector3(self._C14X, self._C14Y, self._C14Z)
     
+    def get_control_points(self):
+        return PanelGrid.GridVector3(self._control_pointX, self._control_pointY, self._control_pointZ)
+
     def get_dimensions(self):
         return self._nx, self._ny
     
