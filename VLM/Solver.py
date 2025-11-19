@@ -19,12 +19,10 @@ class Solver:
         self._wing_nx, self._wing_ny = self._wing_panels.get_dimensions()
         self._n_wing_panels = self._wing_nx * self._wing_ny
 
-        self._AIC: np.ndarray = np.zeros((self._n_wing_panels, self._n_wing_panels))
-        self.inv_AIC: np.ndarray = np.zeros((self._n_wing_panels, self._n_wing_panels))
-        self._B_trefftz: np.ndarray = np.zeros((self._wing_ny, self._wing_ny))
         self._RHS: np.ndarray = np.zeros((self._n_wing_panels, 1))
 
-        self._compute_aerodynamic_influence()
+        self._AIC, self._inv_AIC = self._compute_aerodynamic_influence_coefs()
+        self._B_trefftz = self._compute_trefftz_influence_coefs()
         self._post = Post(self._wing_panels, params)
         self._decambering = Decambering_Iscold(self._wing_panels, params)
 
@@ -66,31 +64,39 @@ class Solver:
         # return self._post.export_results(), np.hstack([self._decambering._delta1, self._decambering._delta2])
         return self._post.export_results(), self._decambering._delta
     
-    def _compute_aerodynamic_influence(self):
+    def _compute_aerodynamic_influence_coefs(self):
         C14X, C14Y, C14Z = self._wing_panels.C14_VORING()
         control_points = self._wing_panels.control_points_VORING(self._n_wing_panels)
         normals = self._wing_panels.normal_VORING(self._n_wing_panels)
 
         V = Flows.VORING(C14X, C14Y, C14Z, control_points, np.ones((self._n_wing_panels, self._n_wing_panels, 1)), self._params.sym, self._params.ground)
-        self._AIC[:] = np.sum(V * normals, axis=2)
+        AIC = np.sum(V * normals, axis=2)
         
         if self._params.wake_fixed:
             C14X_w = np.hstack([C14X[-self._wing_ny:, 2:4], 1e6 * np.ones((self._wing_ny, 2))]) 
             V_w = Flows.VORING(C14X_w, C14Y[-self._wing_ny:, :], C14Z[-self._wing_ny:, :], control_points[:, -self._wing_ny:, :], np.ones((self._n_wing_panels, self._wing_ny, 1)), self._params.sym, self._params.ground)
-            self._AIC[:, -self._wing_ny:] += np.sum(V_w * normals[:, -self._wing_ny:], axis=2)
+            AIC[:, -self._wing_ny:] += np.sum(V_w * normals[:, -self._wing_ny:], axis=2)
 
-        self._inv_AIC = np.linalg.inv(self._AIC)
-        control_points_trefftz = self._wing_panels.control_points_TREFFTZ()
-        C14_trefftz = self._wing_panels.C14_TREFFTZ()
+        inv_AIC = np.linalg.inv(AIC)
+        return AIC, inv_AIC
+
+    def _compute_trefftz_influence_coefs(self):
+        control_points = self._wing_panels.control_points_TREFFTZ()
+        C14 = self._wing_panels.C14_TREFFTZ()
+        normals = self._wing_panels.normal_TREFFTZ()
+
+        B_trefftz = np.zeros((self._wing_ny, self._wing_ny))
 
         for i in range(self._wing_ny):
-            CP = control_points_trefftz[i, :]
+            CP, normal = control_points[i, :], normals[i, :]
 
             for j in range(self._wing_ny):
-                P1 = C14_trefftz[j, :]
-                P2 = C14_trefftz[j + 1, :]
+                P1, P2 = C14[j, :], C14[j + 1, :]
 
-                self._B_trefftz[i, j] = Solver.bij_trefftz(CP, P1, P2, 1.0, self._params.sym, self._params.ground)
+                V_ind_trefftz = Solver.bij_trefftz(CP, P1, P2, 1.0, self._params.sym, self._params.ground)
+                B_trefftz[i, j] = np.dot(V_ind_trefftz, normal[1:])
+
+        return B_trefftz
 
     def _update_RHS(self, decambering: bool):
         V_inf_vec = self._params.V_inf_vec()
@@ -167,4 +173,4 @@ class Solver:
             V_ind_trefftz2 = Flows.VOR2D(P2[1], P2[2], P_ground[1], P_ground[2], Gamma)
             V_ind += (V_ind_trefftz1 - V_ind_trefftz2) * np.array([1.0, -1.0])
 
-        return V_ind[1]
+        return V_ind

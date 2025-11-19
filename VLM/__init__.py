@@ -6,6 +6,7 @@ from VLM.PanelGrid import PanelGrid
 from VLM.Panels import Panels
 from VLM.Parameters import Parameters
 from VLM.Post import Post
+from VLM.Result import Result
 from VLM.Section import Section
 from VLM.Solver import Solver
 from VLM.Wake import Wake

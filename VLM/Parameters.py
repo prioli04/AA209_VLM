@@ -29,6 +29,11 @@ class Parameters:
 
     CL_tol: float = 1e-4
     CD_tol: float = 1e-5
+    CY_tol: float = 1e-5
+
+    CMl_tol: float = 1e-5
+    CM_tol: float = 1e-5
+    CN_tol: float = 1e-5
 
     decamb_Cl_tol: float = 1e-4
     decamb_Cm_tol: float = 1e-5
@@ -54,10 +59,16 @@ class Parameters:
         if not self.wake_fixed:
             print(f"CL tolerance: {self.CL_tol:.1e}")
             print(f"CD tolerance: {self.CD_tol:.1e}")
+            print(f"CM tolerance: {self.CM_tol:.1e}")
+
+            if not self.sym:
+                print(f"CY tolerance: {self.CY_tol:.1e}")
+                print(f"CMl tolerance: {self.CMl_tol:.1e}")
+                print(f"CN tolerance: {self.CN_tol:.1e}")
 
         print()
 
     def V_inf_vec(self):
         c_alfa, s_alfa = np.cos(np.deg2rad(self.alfa_deg)), np.sin(np.deg2rad(self.alfa_deg))
         c_beta, s_beta = np.cos(np.deg2rad(self.beta_deg)), np.sin(np.deg2rad(self.beta_deg))
-        return self.V_inf * np.array([c_alfa * c_beta, s_beta, s_alfa * c_beta])
+        return self.V_inf * np.array([c_alfa * c_beta, -s_beta, s_alfa * c_beta])
