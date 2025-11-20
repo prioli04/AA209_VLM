@@ -133,10 +133,11 @@ class WingPanels(PanelGrid):
         return normals
     
     def normal_TREFFTZ(self):
-        normalX = self._normalX[-1, :].reshape(-1, 1)
         normalY = self._normalY[-1, :].reshape(-1, 1)
         normalZ = self._normalZ[-1, :].reshape(-1, 1)
-        return np.hstack((normalX, normalY, normalZ))
+        normals = np.hstack((normalY, normalZ))
+
+        return normals / np.linalg.norm(normals, axis=1).reshape(-1, 1)
 
     def plot_mesh(self, ax: Axes3D):
         if self._sym:

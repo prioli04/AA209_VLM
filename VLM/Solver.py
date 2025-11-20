@@ -94,7 +94,7 @@ class Solver:
                 P1, P2 = C14[j, :], C14[j + 1, :]
 
                 V_ind_trefftz = Solver.bij_trefftz(CP, P1, P2, 1.0, self._params.sym, self._params.ground)
-                B_trefftz[i, j] = np.dot(V_ind_trefftz, normal[1:])
+                B_trefftz[i, j] = np.dot(V_ind_trefftz, normal)
 
         return B_trefftz
 

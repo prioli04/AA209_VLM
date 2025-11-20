@@ -8,21 +8,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 sections = [
-    VLM.Section(fy_pos=0.0, fc=1.0, x_offset=0.0, z_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
+    VLM.Section(fy_pos=0.0, fc=1.0, x_offset=0.0, z_offset=0.0, twist_deg=0.0, airfoil_path_str="S1223.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
     # VLM.Section(fy_pos=0.5, fc=1.0 ,x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
-    VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.0, z_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT")
+    VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.0, z_offset=0.0, twist_deg=0.0, airfoil_path_str="S1223.dat", xfoil_path_str="NACA0012_XFOIL.OUT")
 ]
 
 patches = [
-    VLM.WingPatch(8, 32, DiscretizationType.COSINE, DiscretizationType.MINUS_SINE),
+    VLM.WingPatch(16, 16, DiscretizationType.COSINE, DiscretizationType.MINUS_SINE),
     # VLM.WingPatch(8, 10, DiscretizationType.COSINE, DiscretizationType.MINUS_SINE)
 ]
 
-wing_geom = VLM.WingGeometry(sections, patches, b=2.5, AR=12.0)
+wing_geom = VLM.WingGeometry(sections, patches, b=2.5, AR=5.0)
 
 params = VLM.Parameters(
     V_inf = 12.0, 
-    alfa_deg = 19.0, 
+    alfa_deg = 15.0, 
     beta_deg = 0.0,
     rho = 1.225, 
     AR = wing_geom.AR, 
@@ -33,7 +33,7 @@ params = VLM.Parameters(
     wake_fixed = True,
     sym = True,
     ground = False,
-    decambering = True,
+    decambering = False,
     decamb_smoothing = 0.2,
     Z = 0.3
 )

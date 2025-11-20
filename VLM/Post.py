@@ -90,9 +90,9 @@ class Post:
         M = np.sum(delta_M, axis=0)
         M_stab = T_stab @ M
 
-        CMl = -M_stab[0] / (self._q_inf * S_ref * self._b)
+        CMl = -M_stab[0] / (self._q_inf * S_ref * self._b) if not self._sym else 0.0
         CM = M_stab[1] / (self._q_inf * S_ref * self._MAC)
-        CN = -M_stab[2] / (self._q_inf * S_ref * self._b)
+        CN = -M_stab[2] / (self._q_inf * S_ref * self._b) if not self._sym else 0.0
 
         delta_phi_i = Gammas[-1, :]
         delta_L = self._rho * self._V_inf * delta_phi_i * np.cos(theta_i) * delta_s_i
@@ -103,7 +103,7 @@ class Post:
         Cd_sec = delta_Di / (self._q_inf * self._delta_y * self._chords)
 
         CL = np.sum(delta_L) / (self._q_inf * S_ref)
-        CY = np.sum(delta_Y) / (self._q_inf * S_ref)
+        CY = np.sum(delta_Y) / (self._q_inf * S_ref) if not self._sym else 0.0
         CD = np.sum(delta_Di) / (self._q_inf * S_ref)
 
         coefs_3D = Result.Coefs_3D(CL, CD, CY, CMl, CM, CN)
