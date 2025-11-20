@@ -6,6 +6,7 @@ class Section:
     fy_pos: float 
     fc: float
     x_offset: float
+    z_offset: float
     twist_deg: float
     airfoil_path_str: str
     xfoil_path_str: str | None = None

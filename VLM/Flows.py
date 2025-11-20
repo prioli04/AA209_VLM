@@ -4,11 +4,15 @@ class Flows:
     __eps = 1e-6
 
     @classmethod
-    def VORING(cls, C14X: np.ndarray, C14Y: np.ndarray, C14Z: np.ndarray, P: np.ndarray, Gamma: np.ndarray, sym: bool, ground: bool):
+    def VORING(cls, C14X: np.ndarray, C14Y: np.ndarray, C14Z: np.ndarray, P: np.ndarray, Gamma: np.ndarray, sym: bool, ground: bool, horseshoe: bool = False):
         P1 = np.vstack((C14X[:, 0], C14Y[:, 0], C14Z[:, 0])).T
         P2 = np.vstack((C14X[:, 1], C14Y[:, 1], C14Z[:, 1])).T
         P3 = np.vstack((C14X[:, 2], C14Y[:, 2], C14Z[:, 2])).T
         P4 = np.vstack((C14X[:, 3], C14Y[:, 3], C14Z[:, 3])).T
+
+        if horseshoe:
+            P3[:, 0] += 1e20
+            P4[:, 0] += 1e20
 
         P1 = np.tile(P1, [P.shape[0], 1, 1])
         P2 = np.tile(P2, [P.shape[0], 1, 1])

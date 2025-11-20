@@ -22,8 +22,10 @@ class Solver:
         self._RHS: np.ndarray = np.zeros((self._n_wing_panels, 1))
 
         self._AIC, self._inv_AIC = self._compute_aerodynamic_influence_coefs()
-        self._B_trefftz = self._compute_trefftz_influence_coefs()
-        self._post = Post(self._wing_panels, params)
+        V_hat_bound = self._compute_bound_vortex_velocity_coefs()
+        B_trefftz = self._compute_trefftz_influence_coefs()
+
+        self._post = Post(self._wing_panels, B_trefftz, V_hat_bound, params)
         self._decambering = Decambering_Iscold(self._wing_panels, params)
 
         panels.print_wing_geom()
@@ -46,12 +48,8 @@ class Solver:
             if self._params.decambering:
                 Gammas = self._decamber_wing(Gammas)
 
-            w_ind = self._B_trefftz @ Gammas[-1, :].T
-
-            self._wing_panels.update_Gammas(Gammas)
-            self._wing_panels.update_w_ind_trefftz(w_ind)
             
-            self._post.compute_coefficients(Gammas, w_ind)
+            self._post.compute_coefficients(Gammas)
             self._post.print_results()
                 
             if self._wake_panels is not None:
@@ -79,6 +77,13 @@ class Solver:
 
         inv_AIC = np.linalg.inv(AIC)
         return AIC, inv_AIC
+    
+    def _compute_bound_vortex_velocity_coefs(self):
+        C14X, C14Y, C14Z = self._wing_panels.C14_VORING()
+        control_points = self._wing_panels.control_points_bound_vortex(self._n_wing_panels)
+
+        V_hat = Flows.VORING(C14X, C14Y, C14Z, control_points, np.ones((self._n_wing_panels, self._n_wing_panels, 1)), self._params.sym, self._params.ground, horseshoe=True)
+        return V_hat
 
     def _compute_trefftz_influence_coefs(self):
         control_points = self._wing_panels.control_points_TREFFTZ()

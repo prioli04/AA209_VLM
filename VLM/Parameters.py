@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import numpy as np
 
-@dataclass
+@dataclass(frozen=True)
 class Parameters:
     V_inf: float
     alfa_deg: float
@@ -11,6 +11,7 @@ class Parameters:
     b: float
     MAC: float
     S: float = field(init=False)
+    r_ref: np.ndarray
 
     wake_fixed: bool
 
@@ -44,6 +45,7 @@ class Parameters:
     def __post_init__(self):
         super().__setattr__("S", self.b**2 / self.AR)
         super().__setattr__("decamb_theta2", np.acos(1.0 - 2.0 * self.decamb_x2))
+        super().__setattr__("r_ref", self.r_ref + np.array([0.0, 0.0, self.Z]))
 
         MGC = self.b / self.AR
         super().__setattr__("wake_dt", self.wake_dt_fact * MGC / self.V_inf)
@@ -53,6 +55,7 @@ class Parameters:
         print("===== Run Parameters =====")
         print(f"Symmetry: {self.sym}")
         print(f"Ground: {self.ground} (Height: {self.Z:.3f} m)")
+        print(f"Reference Point: ({self.r_ref[0]:.3f}, {self.r_ref[1]:.3f}, {self.r_ref[2]:.3f}) m")
         print(f"V_inf: {self.V_inf:.2f} m/s (α: {self.alfa_deg:.2f}°; β: {self.beta_deg:.2f}°)")
         print(f"rho: {self.rho:.3f} kg/m³")
 
