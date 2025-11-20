@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import numpy as np
 
-@dataclass(frozen=True)
+@dataclass
 class Parameters:
     V_inf: float
     alfa_deg: float
@@ -36,20 +36,21 @@ class Parameters:
     CM_tol: float = 1e-5
     CN_tol: float = 1e-5
 
-    decamb_Cl_tol: float = 1e-4
-    decamb_Cm_tol: float = 1e-5
+    decamb_Cl_tol: float = 1e-2
     decamb_x2: float = 0.8
     decamb_theta2: float = field(init=False)
-    decamb_max_iter: int = 10
+    decamb_max_iter: int = 200
+    decamb_under_relaxation: float = 0.0
+    decamb_smoothing: float = 0.0
     
     def __post_init__(self):
-        super().__setattr__("S", self.b**2 / self.AR)
-        super().__setattr__("decamb_theta2", np.acos(1.0 - 2.0 * self.decamb_x2))
-        super().__setattr__("r_ref", self.r_ref + np.array([0.0, 0.0, self.Z]))
+        self.S = self.b**2 / self.AR
+        self.decamb_theta2 = np.acos(1.0 - 2.0 * self.decamb_x2)
+        self.r_ref = self.r_ref + np.array([0.0, 0.0, self.Z])
 
         MGC = self.b / self.AR
-        super().__setattr__("wake_dt", self.wake_dt_fact * MGC / self.V_inf)
-        super().__setattr__("wake_dx", self.wake_dx_fact * self.wake_dt * self.V_inf)
+        self.wake_dt = self.wake_dt_fact * MGC / self.V_inf
+        self.wake_dx = self.wake_dx_fact * self.wake_dt * self.V_inf
 
     def print_run_params(self):
         print("===== Run Parameters =====")

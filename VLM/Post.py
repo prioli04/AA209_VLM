@@ -69,7 +69,6 @@ class Post:
         delta_s_i = np.sqrt(dy**2 + dz**2)
 
         S_ref = 0.5 * self._S if self._sym else self._S
-        delta_F = np.zeros((Gammas.size, 3))
         delta_M = np.zeros((Gammas.size, 3))
 
         k = 0
@@ -81,19 +80,15 @@ class Post:
                 r_i = 0.5 * (r_a + r_b)
 
                 Vi_bound = np.array([Vi_boundX[i, j], Vi_boundY[i, j], Vi_boundZ[i, j]])
-                delta_F[k, :] = self._rho * np.cross(Vi_bound, l_i) * Gamma_bound[k]
-                delta_M[k, :] = np.cross(r_i - self._r_ref, delta_F[k, :])
+                delta_F = self._rho * np.cross(Vi_bound, l_i) * Gamma_bound[k]
+                delta_M[k, :] = np.cross(r_i - self._r_ref, delta_F)
                 k += 1
 
         ca, sa = np.cos(np.deg2rad(self._alfa_deg)), np.sin(np.deg2rad(self._alfa_deg))
         T_stab = np.array([[ca, 0.0, sa], [0.0, 1.0, 0.0], [-sa, 0.0, ca]])
 
-        F, M = np.sum(delta_F, axis=0), np.sum(delta_M, axis=0)
-        F_stab, M_stab = T_stab @ F, T_stab @ M
-
-        CD_test = F_stab[0] / (self._q_inf * S_ref)
-        CY_test = F_stab[1] / (self._q_inf * S_ref)
-        CL_test = F_stab[2] / (self._q_inf * S_ref)
+        M = np.sum(delta_M, axis=0)
+        M_stab = T_stab @ M
 
         CMl = -M_stab[0] / (self._q_inf * S_ref * self._b)
         CM = M_stab[1] / (self._q_inf * S_ref * self._MAC)
@@ -134,7 +129,6 @@ class Post:
 
         return Cl_sec, Cm_sec
 
-    # @staticmethod
     def _plot_trefftz(self):
         plt.figure()
         plt.plot((self._C14_y[-1, :-1] + self._C14_y[-1, 1:]) / 2.0, self._result.Cl_sec)
@@ -142,10 +136,10 @@ class Post:
         plt.ylabel("Cl [-]")
         plt.show(block=False)
 
-    def plot_delta1(self, delta1: np.ndarray):
+    def plot_delta(self, delta: np.ndarray):
         plt.figure()
-        plt.plot((self._C14_y[-1, :-1] + self._C14_y[-1, 1:]) / 2.0, np.rad2deg(delta1))
+        plt.plot((self._C14_y[-1, :-1] + self._C14_y[-1, 1:]) / 2.0, np.rad2deg(delta))
         plt.xlabel("Y [m]")
-        plt.ylabel("delta1 [°]")
+        plt.ylabel("delta [°]")
         plt.ylim([-10.0, 10.0])
         plt.show()

@@ -8,8 +8,13 @@ class Airfoil:
         self._name = name
         self._x_upper, self._y_upper, self._x_lower, self._y_lower = self._split_upper_lower(np.array(x), np.array(y))
         self._x_camber, self._y_camber = self._compute_camber_line()
-        self._alfa_visc, self._Cl_visc, self._Cm_visc = self._read_xfoil(xfoil_path)
-        self._alfa0 = self._compute_alfa0()
+        self._alfa_visc, self._Cl_visc, self._Cm_visc, self._alfa0 = np.empty(0), np.empty(0), np.empty(0), 0.0
+        self._viscous_data = False
+
+        if xfoil_path is not None:
+            self._alfa_visc, self._Cl_visc, self._Cm_visc, self._alfa0 = self._read_xfoil(xfoil_path)
+            self._viscous_data = True
+
         # self.plot_foil()
 
     def _split_upper_lower(self,  x: np.ndarray, y: np.ndarray):
@@ -68,67 +73,61 @@ class Airfoil:
 
         return x_camber, y_camber
     
-    def _read_xfoil(self, xfoil_path: Path | None):
-        alfas = np.empty(0)
-        cls = np.empty(0)
-        cms = np.empty(0)
+    def _read_xfoil(self, xfoil_path: Path):
+        with xfoil_path.open() as f:
+            lines = f.read().splitlines()
 
-        if xfoil_path is not None:
-            with xfoil_path.open() as f:
-                lines = f.read().splitlines()
+        found_params, found_results = False, False
+        alfa_id, cl_id, cm_id = 0, 0, 0
+        alfas, Cls, Cms = np.empty(0), np.empty(0), np.empty(0)
 
-            found_params, found_results = False, False
-            alfa_id, cl_id, cm_id = 0, 0, 0
+        for line in lines:
+            line = line.strip()
+            tokens = line.split()
 
-            for line in lines:
-                line = line.strip()
-                tokens = line.split()
+            if found_params and found_results and "--" not in line:
+                try:
+                    alfas = np.hstack([alfas, float(tokens[alfa_id])]) 
+                    Cls = np.hstack([Cls, float(tokens[cl_id])]) 
+                    Cms = np.hstack([Cms, float(tokens[cm_id])]) 
 
-                if found_params and found_results and "--" not in line:
-                    try:
-                        alfas = np.hstack([alfas, float(tokens[alfa_id])]) 
-                        cls = np.hstack([cls, float(tokens[cl_id])]) 
-                        cms = np.hstack([cms, float(tokens[cm_id])]) 
+                except ValueError:
+                    raise ValueError("Could not parse result values. Check file provided!")
 
-                    except ValueError:
-                        raise ValueError("Could not parse result values. Check file provided!")
+            if line.startswith("Mach"):
+                try:
+                    re_id = tokens.index("Re")
+                    n_crit_id = tokens.index("Ncrit")
+                    re = float("".join(tokens[re_id + 2:n_crit_id]))        
 
-                if line.startswith("Mach"):
-                    try:
-                        re_id = tokens.index("Re")
-                        n_crit_id = tokens.index("Ncrit")
-                        re = float("".join(tokens[re_id + 2:n_crit_id]))        
+                except ValueError:
+                    raise ValueError("Could not parse the Reynolds number of the run. Check file provided!")
 
-                    except ValueError:
-                        raise ValueError("Could not parse the Reynolds number of the run. Check file provided!")
+                found_params = True
 
-                    found_params = True
+            if line.startswith("alpha"):
+                try:
+                    alfa_id = tokens.index("alpha")
+                    cl_id = tokens.index("CL")
+                    cm_id = tokens.index("CM")
 
-                if line.startswith("alpha"):
-                    try:
-                        alfa_id = tokens.index("alpha")
-                        cl_id = tokens.index("CL")
-                        cm_id = tokens.index("CM")
+                except ValueError:
+                    raise ValueError("Could not find alfa or Cl columns. Check file provided!")
+                
+                found_results = True
 
-                    except ValueError:
-                        raise ValueError("Could not find alfa or Cl columns. Check file provided!")
-                    
-                    found_results = True
+        if not found_params:
+            raise ValueError("Could not find run parameters information. Check file provided!")
+        
+        if not found_results:
+            raise ValueError("Could not find results. Check file provided")
 
-            if not found_params:
-                raise ValueError("Could not find run parameters information. Check file provided!")
-            
-            if not found_results:
-                raise ValueError("Could not find results. Check file provided")
+        alfa0 = self._compute_alfa0(alfas, Cls)
+        return alfas, Cls, Cms, alfa0
 
-        return alfas, cls, cms
-
-    def _compute_alfa0(self):
-        closest_id = np.argmin(np.abs(self._Cl_visc))
-        return np.deg2rad(self._alfa_visc[closest_id]) - self._Cl_visc[closest_id] / (2.0 * np.pi)
-
-    def get_raw_camber_line(self):
-        return self._x_camber, self._y_camber
+    def _compute_alfa0(self, alfa_visc: np.ndarray, Cl_visc: np.ndarray):
+        closest_id = np.argmin(np.abs(Cl_visc))
+        return np.deg2rad(alfa_visc[closest_id]) - Cl_visc[closest_id] / (2.0 * np.pi)
 
     def get_camber_line(self, x_vals: np.ndarray, chord: float, twist_deg: float):
         rot_angle = -np.deg2rad(twist_deg)
@@ -155,6 +154,9 @@ class Airfoil:
     def get_visc_coefs(self):
         return self._alfa_visc, self._Cl_visc, self._Cm_visc, self._alfa0
         
+    def has_viscous_data(self):
+        return self._viscous_data
+
     def plot_foil(self):
         fig = plt.figure()
         ax = fig.gca()

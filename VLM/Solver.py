@@ -1,4 +1,4 @@
-from .Decambering_Iscold import Decambering_Iscold
+from .Decambering import Decambering
 from .Flows import Flows
 from .Panels import Panels
 from .Parameters import Parameters
@@ -7,7 +7,7 @@ import numpy as np
 import time
 
 class Solver:
-    def __init__(self, panels: Panels, params: Parameters):
+    def __init__(self, panels: Panels, params: Parameters, decamb_delta_init: np.ndarray | None = None):
         if params.sym and params.beta_deg != 0.0:
             raise ValueError("Sideslip angle is different than 0° and the symmetry flag is activated.")
 
@@ -26,7 +26,7 @@ class Solver:
         B_trefftz = self._compute_trefftz_influence_coefs()
 
         self._post = Post(self._wing_panels, B_trefftz, V_hat_bound, params)
-        self._decambering = Decambering_Iscold(self._wing_panels, params)
+        self._decambering = Decambering(self._wing_panels, params, decamb_delta_init)
 
         panels.print_wing_geom()
 
@@ -35,19 +35,15 @@ class Solver:
             
         self._params.print_run_params()
 
-    def solve(self, decamber_delta_init: np.ndarray | None = None):
-        if decamber_delta_init is not None:
-            self._decambering.update_deltas(decamber_delta_init)
-
+    def solve(self):
         t0 = time.time()
         d_wake = self._params.wake_dt * self._params.V_inf_vec()
 
         while not self._post.is_converged():
-            Gammas = self._solve_linear_system(decambering=True)
+            Gammas = self._solve_linear_system(decambering=self._params.decambering)
 
             if self._params.decambering:
                 Gammas = self._decamber_wing(Gammas)
-
             
             self._post.compute_coefficients(Gammas)
             self._post.print_results()
@@ -55,11 +51,10 @@ class Solver:
             if self._wake_panels is not None:
                 self._wake_panels.wake_rollup(self._wing_C14X, self._wing_C14Y, self._wing_C14Z, Gammas, d_wake)
 
-        # self._post.compute_coefficients(Gammas, w_ind, plot=True)
-        # self._post.plot_delta1(self._decambering._delta)
+        # self._post.compute_coefficients(Gammas, plot=True)
+        # self._post.plot_delta(self._decambering._delta)
 
         print(f"\nCompleted in {(time.time() - t0):.2f} s.")
-        # return self._post.export_results(), np.hstack([self._decambering._delta1, self._decambering._delta2])
         return self._post.export_results(), self._decambering._delta
     
     def _compute_aerodynamic_influence_coefs(self):
@@ -107,10 +102,6 @@ class Solver:
         V_inf_vec = self._params.V_inf_vec()
         normals = self._wing_panels.normal_RHS()
 
-        # if decambering:
-        #     control_pointX = self._wing_panels.control_pointsX_chord_normalized()
-        #     normals = self._decambering.decamber_normals(normals, control_pointX)
-
         if decambering:
             normals = self._decambering.decamber_normals(normals)
 
@@ -127,29 +118,20 @@ class Solver:
         return Gammas.reshape(self._wing_nx, -1)
 
     def _decamber_wing(self, Gammas: np.ndarray):
-        K = 0
-        PI = 2
-
         iter = 0
         delta_Cl = np.inf * np.ones((self._wing_ny, 1))
 
         t0 = time.time()
-        while np.linalg.norm(delta_Cl) > 1e-2 and iter < 200:
+        while np.linalg.norm(delta_Cl) > self._params.decamb_Cl_tol and iter < self._params.decamb_max_iter:
             Cl_sec, _ = self._post.compute_coefficients_decambering(Gammas)
             alfa_eff = self._decambering.compute_effective_alfas(Cl_sec)
             delta_Cl = self._decambering.compute_residuals(alfa_eff, Cl_sec)
 
-            self._decambering.update_deltas((1.0 / (1.0 + K)) * delta_Cl / (2.0 * np.pi))
-            self._decambering.apply_smoothing(PI)
+            self._decambering.update_deltas(delta_Cl)
             Gammas = self._solve_linear_system(decambering=True)
-
-            print(np.linalg.norm(delta_Cl))
             iter += 1
 
-        # if iter >= 200:
-        #     Gammas = np.zeros_like(Gammas)
-            
-        print(f"\nDecambering took {(time.time() - t0):.2f} s.")
+        print(f"\nDecambering took {(time.time() - t0):.2f} s. (Cl residual: {np.linalg.norm(delta_Cl):.2e})")
         return Gammas
     
     @staticmethod

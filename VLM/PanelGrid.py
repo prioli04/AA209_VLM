@@ -22,8 +22,6 @@ class PanelGrid:
         self._normalY = np.zeros((nx, ny))
         self._normalZ = np.zeros((nx, ny))
 
-        self._Gammas = np.zeros((nx, ny))
-
         if points is not None:
             PX, PY, PZ = points
             self._C14X, self._C14Y, self._C14Z = self._compute_C14(PX, PY, PZ, wake_dx)
@@ -94,9 +92,6 @@ class PanelGrid:
 
     def get_dimensions(self):
         return self._nx, self._ny
-    
-    def get_Gammas(self):
-        return self._Gammas
     
     @staticmethod
     def _C14_VORING_base(C14X_orig: np.ndarray, C14Y_orig: np.ndarray, C14Z_orig: np.ndarray):

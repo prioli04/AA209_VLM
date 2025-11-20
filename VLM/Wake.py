@@ -18,6 +18,7 @@ class Wake(PanelGrid):
         self._plot_ax = plot_ax
         self._wake_lines = None
         self._add_TE(start=True)
+        self._Gammas = np.zeros((0, ny))
 
     def _C14_VORING(self):
         if self._it < 1:

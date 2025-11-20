@@ -23,7 +23,6 @@ class WingPanels(PanelGrid):
         nx, ny = self._points.X.shape[0] - 1, self._points.X.shape[1] - 1
 
         super().__init__(nx, ny, self._points, wake_dx=wake_dx)
-        self._w_ind_trefftz = np.zeros(ny)
 
     def _compute_points(self, Z: float):
         corners_x = np.empty(0)
@@ -65,12 +64,6 @@ class WingPanels(PanelGrid):
             foil_ids = foil_ids[::-1] + foil_ids
 
         return foil_ids
-
-    def update_w_ind_trefftz(self, w_ind: np.ndarray):
-        self._w_ind_trefftz[:] = w_ind
-
-    def update_Gammas(self, Gammas: np.ndarray):
-        self._Gammas[:] = Gammas
 
     def get_chords(self):
         return self._chords
@@ -121,9 +114,6 @@ class WingPanels(PanelGrid):
         control_points = np.zeros((n_points, n_tiles, 3))
         control_points[:, :, 0], control_points[:, :, 1], control_points[:, :, 2] = CPX, CPY, CPZ
         return control_points
-
-    def control_pointsX_chord_normalized(self):
-        return self._control_pointX / self._chords
 
     def normal_RHS(self):
         normalX = self._normalX.reshape(-1, 1)
