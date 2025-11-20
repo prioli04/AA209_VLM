@@ -95,9 +95,9 @@ class Post:
         CY_test = F_stab[1] / (self._q_inf * S_ref)
         CL_test = F_stab[2] / (self._q_inf * S_ref)
 
-        CMl = M_stab[0] / (self._q_inf * S_ref * self._b)
+        CMl = -M_stab[0] / (self._q_inf * S_ref * self._b)
         CM = M_stab[1] / (self._q_inf * S_ref * self._MAC)
-        CN = M_stab[2] / (self._q_inf * S_ref * self._b)
+        CN = -M_stab[2] / (self._q_inf * S_ref * self._b)
 
         delta_phi_i = Gammas[-1, :]
         delta_L = self._rho * self._V_inf * delta_phi_i * np.cos(theta_i) * delta_s_i
