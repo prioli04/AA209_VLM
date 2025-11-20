@@ -1,5 +1,4 @@
-# VLM - Time Stepping Wake
-# No dihedral
+# VLM - Time Stepping Wake + Decambering
 
 import cProfile
 import VLM
@@ -24,7 +23,7 @@ wing_geom = VLM.WingGeometry(sections, patches, b=2.5, AR=5.0)
 params = VLM.Parameters(
     V_inf = 12.0, 
     alfa_deg = 10.0, 
-    beta_deg = 15.0,
+    beta_deg = 5.0,
     rho = 1.225, 
     AR = wing_geom.AR, 
     b = wing_geom.b, 

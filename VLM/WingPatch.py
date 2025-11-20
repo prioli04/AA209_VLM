@@ -58,6 +58,7 @@ class WingPatch:
            
             fc = np.interp(fy_sec, [fy_root, fy_tip], [self._root_sec.fc, self._tip_sec.fc])            
             x_offset = np.interp(fy_sec, [fy_root, fy_tip], [self._root_sec.x_offset, self._tip_sec.x_offset])
+            z_offset = np.interp(fy_sec, [fy_root, fy_tip], [self._root_sec.z_offset, self._tip_sec.z_offset])
             twist_deg = np.interp(fy_sec, [fy_root, fy_tip], [self._root_sec.twist_deg, self._tip_sec.twist_deg])
 
             root_camber_x, root_camber_z = self._root_foil.get_camber_line(x_grid[:, i_sec], fc * wing_root_chord, twist_deg)
@@ -68,6 +69,7 @@ class WingPatch:
                 corners_z[j, i_sec] = np.interp(fy_sec, [fy_root, fy_tip], [root_camber_z[j], tip_camber_z[j]])
             
             corners_x[:, i_sec] += x_offset
+            corners_z[:, i_sec] += z_offset
 
         corners_y = wing_semi_span * y_grid 
         return corners_x, corners_y, corners_z
