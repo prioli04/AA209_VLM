@@ -33,12 +33,13 @@ class Post:
         self._vortices_x, _, _ = wing_mesh.get_control_points()
         self._delta_y = np.abs(np.diff(self._C14_y[-1, :]))
         self._chords = wing_mesh.get_chords()
+        self._y_sec = self._C14_y[-1, :-1] + self._delta_y * 0.5
 
         self._result = Result()
         self._tolerances = Result.Coefs_3D(params.CL_tol, params.CD_tol, params.CY_tol, params.CMl_tol, params.CM_tol, params.CN_tol)
 
     def _check_convergence(self):
-        self._converged = np.all((self._result.residuals.to_array() - self._tolerances.to_array()) < 0.0)
+        self._converged = np.all((self._result.residuals.to_array() - self._tolerances.to_array()) < 0.0) or self._wake_fixed
 
     def export_results(self):
         return self._result
@@ -107,7 +108,7 @@ class Post:
         CD = np.sum(delta_Di) / (self._q_inf * S_ref)
 
         coefs_3D = Result.Coefs_3D(CL, CD, CY, CMl, CM, CN)
-        self._result.update(Cl_sec, Cd_sec, coefs_3D, self._AR)
+        self._result.update(self._y_sec, Cl_sec, Cd_sec, coefs_3D, self._AR)
         self._check_convergence()
 
         if plot:
