@@ -18,6 +18,7 @@ class Result:
             return np.array([self.CL, self.CD, self.CY, self.CMl, self.CM, self.CN])
 
     def __init__(self):
+        self.y_sec = np.empty(0)
         self.Cl_sec = np.empty(0)
         self.Cd_sec = np.empty(0)
         self.coefs_3D_prev = Result.Coefs_3D()
@@ -37,7 +38,8 @@ class Result:
 
         self.residuals = Result.Coefs_3D(CL_res, CD_res, CY_res, CMl_res, CM_res, CN_res)
     
-    def update(self, Cl_sec: np.ndarray, Cd_sec: np.ndarray, coefs_3D: Coefs_3D, AR: float):
+    def update(self, y_sec: np.ndarray, Cl_sec: np.ndarray, Cd_sec: np.ndarray, coefs_3D: Coefs_3D, AR: float):
+        self.y_sec = y_sec
         self.Cl_sec, self.Cd_sec = Cl_sec, Cd_sec
         self.CL_CD = coefs_3D.CL / coefs_3D.CD
         self.efficiency = coefs_3D.CL**2 / (coefs_3D.CD * np.pi * AR)

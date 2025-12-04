@@ -15,8 +15,6 @@ class Airfoil:
             self._alfa_visc, self._Cl_visc, self._Cm_visc, self._alfa0 = self._read_xfoil(xfoil_path)
             self._viscous_data = True
 
-        # self.plot_foil()
-
     def _split_upper_lower(self,  x: np.ndarray, y: np.ndarray):
         eps = 1e-6
 
@@ -156,19 +154,6 @@ class Airfoil:
         
     def has_viscous_data(self):
         return self._viscous_data
-
-    def plot_foil(self):
-        fig = plt.figure()
-        ax = fig.gca()
-        plt.plot(self._x_upper, self._y_upper, "k")
-        plt.plot(self._x_lower, self._y_lower, "k")
-        plt.plot(self._x_camber, self._y_camber, "r--")
-
-        plt.title(f"{self._name}")
-        plt.xlabel("X [m]")
-        plt.ylabel("Y [m]")
-        ax.set_aspect("equal")
-        plt.show(block=False)
 
     @staticmethod
     def read(airfoil_path: Path, xfoil_path: Path | None = None):

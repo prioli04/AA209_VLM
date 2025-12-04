@@ -35,7 +35,7 @@ class Solver:
             
         self._params.print_run_params()
 
-    def solve(self):
+    def solve(self, plot: bool = False):
         t0 = time.time()
         d_wake = self._params.wake_dt * self._params.V_inf_vec()
 
@@ -51,8 +51,9 @@ class Solver:
             if self._wake_panels is not None:
                 self._wake_panels.wake_rollup(self._wing_C14X, self._wing_C14Y, self._wing_C14Z, Gammas, d_wake)
 
-        # self._post.compute_coefficients(Gammas, plot=True)
-        # self._post.plot_delta(self._decambering._delta)
+        if plot:
+            self._post.compute_coefficients(Gammas, plot=True)
+            self._post.plot_delta(self._decambering._delta)
 
         print(f"\nCompleted in {(time.time() - t0):.2f} s.")
         return self._post.export_results(), self._decambering._delta

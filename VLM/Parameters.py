@@ -3,21 +3,22 @@ import numpy as np
 
 @dataclass
 class Parameters:
-    V_inf: float
     alfa_deg: float
-    beta_deg: float
-    rho: float
     AR: float
-    b: float
     MAC: float
-    S: float = field(init=False)
     r_ref: np.ndarray
 
-    wake_fixed: bool
+    V_inf: float = 1.0
+    beta_deg: float = 0.0
+    rho: float = 1.0
+    b: float = 1.0
+    S: float = field(init=False)
 
-    sym: bool
-    ground: bool
-    decambering: bool
+    wake_fixed: bool = True
+
+    sym: bool = True
+    ground: bool = False
+    decambering: bool = False
 
     # Optional parameters
     Z: float = 0.0
