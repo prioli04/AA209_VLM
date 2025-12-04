@@ -32,7 +32,7 @@ def init_sim(x_off: float, AR: float):
 x_off_30 = 0.5 * np.tan(np.deg2rad(30.0)) # x_offset = 0.5*b * tan(Lambda); b=1 is used in this example
 x_off_45 = 0.5 * np.tan(np.deg2rad(45.0))
 
-ARs = np.linspace(1.0, 7.0, 3)
+ARs = np.linspace(1.0, 7.0, 10)
 CL_alfas_0, CL_alfas_30, CL_alfas_45 = [], [], []
 
 for AR in ARs:

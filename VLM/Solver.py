@@ -67,7 +67,7 @@ class Solver:
         AIC = np.sum(V * normals, axis=2)
         
         if self._params.wake_fixed:
-            C14X_w = np.hstack([C14X[-self._wing_ny:, 2:4], 1e6 * np.ones((self._wing_ny, 2))]) 
+            C14X_w = np.hstack([C14X[-self._wing_ny:, -1:-3:-1], 1e6 * np.ones((self._wing_ny, 2))]) 
             V_w = Flows.VORING(C14X_w, C14Y[-self._wing_ny:, :], C14Z[-self._wing_ny:, :], control_points[:, -self._wing_ny:, :], np.ones((self._n_wing_panels, self._wing_ny, 1)), self._params.sym, self._params.ground)
             AIC[:, -self._wing_ny:] += np.sum(V_w * normals[:, -self._wing_ny:], axis=2)
 
