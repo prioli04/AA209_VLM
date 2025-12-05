@@ -3,8 +3,10 @@ from dataclasses import dataclass
 import numpy as np
 import sys
 
+# Object for holding the results of post-processing the VLM output
 @dataclass
 class Result:
+    # Object for packing 3D coefficients
     @dataclass(frozen=True)
     class Coefs_3D:
         CL: float = 0.0
@@ -18,15 +20,16 @@ class Result:
             return np.array([self.CL, self.CD, self.CY, self.CMl, self.CM, self.CN])
 
     def __init__(self):
-        self.y_sec = np.empty(0)
-        self.Cl_sec = np.empty(0)
-        self.Cd_sec = np.empty(0)
-        self.coefs_3D_prev = Result.Coefs_3D()
-        self.coefs_3D = Result.Coefs_3D()
-        self.residuals = Result.Coefs_3D()
-        self.CL_CD = 0.0
-        self.efficiency = 0.0
+        self.y_sec = np.empty(0) # y coordinates of each section
+        self.Cl_sec = np.empty(0) # Sectional lift coefficient distribution
+        self.Cd_sec = np.empty(0) # Sectional drag coefficient distribution
+        self.coefs_3D_prev = Result.Coefs_3D() # Previous iteration 3D coefficients
+        self.coefs_3D = Result.Coefs_3D() # Current iteration 3D coefficients
+        self.residuals = Result.Coefs_3D() # 3D coefficients residuals
+        self.CL_CD = 0.0 # Lift-to-drag ratio [-]
+        self.efficiency = 0.0 # Span efficiency [-] e = CL^2/(pi * AR * CD)
 
+    # Residuals defined as coefs_new - coefs_old
     def _compute_residuals(self):
         CL_res = self.coefs_3D.CL - self.coefs_3D_prev.CL
         CD_res = self.coefs_3D.CD - self.coefs_3D_prev.CD
@@ -38,6 +41,7 @@ class Result:
 
         self.residuals = Result.Coefs_3D(CL_res, CD_res, CY_res, CMl_res, CM_res, CN_res)
     
+    # Update results with current iteration coefficients
     def update(self, y_sec: np.ndarray, Cl_sec: np.ndarray, Cd_sec: np.ndarray, coefs_3D: Coefs_3D, AR: float):
         self.y_sec = y_sec
         self.Cl_sec, self.Cd_sec = Cl_sec, Cd_sec
@@ -48,6 +52,7 @@ class Result:
         self.coefs_3D = coefs_3D
         self._compute_residuals()
 
+    # Print results to the screen
     def print(self, iteration: int, wake_fixed: bool):
         fields = {
             "CL": self.coefs_3D.CL, "CD": self.coefs_3D.CD, "CM": self.coefs_3D.CM,
@@ -68,6 +73,7 @@ class Result:
         CURSOR_UP_N = f"\x1b[{N}A"
         sys.stdout.write(CURSOR_UP_N) if iteration != 0 else print()
 
+        # Write the iteration and residuals line
         if not wake_fixed:
             CL_res = self.residuals.CL
             CD_res = self.residuals.CD
@@ -75,6 +81,7 @@ class Result:
             sys.stdout.write(ERASE_LINE)
             sys.stdout.write(f"Iteration {iteration}: CL_res = {CL_res:.5e} \t CD_res = {CD_res:.5e} \n")
 
+        # Write the results
         for (k, v) in fields.items():
             sys.stdout.write(ERASE_LINE)
             sys.stdout.write(f"{k}: {v:.5f}\n")

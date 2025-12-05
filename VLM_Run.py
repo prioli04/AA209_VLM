@@ -1,16 +1,14 @@
 # VLM - Time Stepping Wake + Decambering
 
-import cProfile
 import VLM
 from VLM.WingPatch import DiscretizationType
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 sections = [
-    VLM.Section(fy_pos=0.0, fc=1.0, x_offset=0.0, z_offset=0.0, twist_deg=0.0, airfoil_path_str="Assets/naca0012.dat", xfoil_path_str="Assets/NACA0012_XFOIL.OUT"),
+    VLM.Section(fy_pos=0.0, fc=1.0, x_offset=0.0, z_offset=0.0, twist_deg=0.0, airfoil_path_str="Assets/S1223.dat", xfoil_path_str="Assets/NACA0012_XFOIL.OUT"),
     # VLM.Section(fy_pos=0.5, fc=1.0 ,x_offset=0.0, twist_deg=0.0, airfoil_path_str="naca0012.dat", xfoil_path_str="NACA0012_XFOIL.OUT"),
-    VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.5, z_offset=0.0, twist_deg=0.0, airfoil_path_str="Assets/naca0012.dat", xfoil_path_str="Assets/NACA0012_XFOIL.OUT")
+    VLM.Section(fy_pos=1.0, fc=1.0, x_offset=0.5, z_offset=0.0, twist_deg=0.0, airfoil_path_str="Assets/S1223.dat", xfoil_path_str="Assets/NACA0012_XFOIL.OUT")
 ]
 
 patches = [
@@ -25,7 +23,7 @@ params = VLM.Parameters(
     AR = wing_geom.AR, 
     MAC = wing_geom.MAC,
     r_ref=np.array([0.125, 0.0, 0.0]),
-    wake_fixed=True
+    wake_fixed=False
 )
 
 alfas = np.linspace(0.0, 25.0, 26)
@@ -58,4 +56,3 @@ solver = VLM.Solver(panels, params)
 
 solver.solve(plot=False)
 input("Press any key to exit.")
-# cProfile.run("solver.solve()")

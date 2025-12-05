@@ -5,36 +5,42 @@ from typing import List
 
 import numpy as np
 
+# Object that extends 'PanelGrid' for wing specific mesh operations
 class WingPanels(PanelGrid):
     def __init__(self, wing_geometry: WingGeometry, Z: float, wake_dx: float, sym: bool):
-        self._sym = sym
+        self._sym = sym # Symmetry flag
         
-        self._b = wing_geometry.b
-        self._S = wing_geometry.S
-        self._root_chord = wing_geometry.root_chord
-        self._MAC = wing_geometry.MAC
+        self._b = wing_geometry.b # Wing span
+        self._S = wing_geometry.S # Wing area
+        self._root_chord = wing_geometry.root_chord # Wing root chord
+        self._MAC = wing_geometry.MAC # Wing Mean Aerodynamic Chord
 
-        self._patches = wing_geometry.get_patches()
-        self._airfoils = wing_geometry.get_airfoils()
+        self._patches = wing_geometry.get_patches() # Wing patches
+        self._airfoils = wing_geometry.get_airfoils() # Wing airfoils
+
+        # Associate each panel strip with an airfoil (ids are used in order to avoid replicating airfoils)
         self._airfoil_ids = self._set_airfoil_ids()
 
-        self._points = self._compute_points(Z)
-        self._chords = self._compute_chords()
-        nx, ny = self._points.X.shape[0] - 1, self._points.X.shape[1] - 1
+        self._points = self._compute_points(Z) # Compute the mesh points
+        self._chords = self._compute_chords() # Compute each panel strip chord
+        nx, ny = self._points.X.shape[0] - 1, self._points.X.shape[1] - 1 # Panel mesh dimensions
 
-        super().__init__(nx, ny, self._points, wake_dx=wake_dx)
+        super().__init__(nx, ny, self._points, wake_dx=wake_dx) # Init default constructor
 
+    # Compute the mesh points
     def _compute_points(self, Z: float):
         corners_x = np.empty(0)
         corners_y = np.empty(0)
         corners_z = np.empty(0)
 
+        # Compute points patch per patch and join them side-by-side
         for patch in self._patches:
             patch_x, patch_y, patch_z = patch.compute_points(self._root_chord, self._b / 2.0, Z)
             corners_x = np.hstack((corners_x[:, :-1], patch_x)) if corners_x.size != 0 else patch_x
             corners_y = np.hstack((corners_y[:, :-1], patch_y)) if corners_y.size != 0 else patch_y
             corners_z = np.hstack((corners_z[:, :-1], patch_z)) if corners_z.size != 0 else patch_z
 
+        # If symmetry is off, join the mirror image also
         if not self._sym:
             corners_x = np.hstack([np.flip(corners_x, axis=1), corners_x[:,1:]])
             corners_y = np.hstack([-np.flip(corners_y, axis=1), corners_y[:,1:]])
@@ -42,21 +48,26 @@ class WingPanels(PanelGrid):
 
         return super().GridVector3(corners_x, corners_y, corners_z)
     
+    # Compute each panel strip chord
     def _compute_chords(self):
         chords_wing = np.empty(0)
 
+        # Compute chords per patch and join them side-by-side
         for patch in self._patches:
             chords_patch = patch.compute_chords(self._root_chord)
             chords_wing = np.hstack((chords_wing, chords_patch)) if chords_wing.size != 0 else chords_patch
 
+        # If symmetry is off, join the mirror image also
         if not self._sym:
             chords_wing = np.hstack([np.flip(chords_wing), chords_wing])
 
         return chords_wing
     
+    # Associate each panel strip with an airfoil (ids are used in order to avoid replicating airfoils)
     def _set_airfoil_ids(self) -> List[int]:
         foil_ids = []
 
+        # All strips in a patch are associated with the root section airfoil
         for patch in self._patches:
             foil_ids += [patch._root_foil_id] * patch.ny
 
@@ -65,24 +76,30 @@ class WingPanels(PanelGrid):
 
         return foil_ids
 
+    # Getter for the panel strips' chords
     def get_chords(self):
         return self._chords
 
+    # Getter for the airfoils
     def get_airfoils(self):
         return self._airfoils, self._airfoil_ids
 
+    # Get the corners of the trailing vortices of the last row of vortex rings
     def extract_TE_points(self):
         return super().GridVector3(self._C14X[-1, :], self._C14Y[-1, :], self._C14Z[-1, :])
 
+    # Get ring vortices' corners values in the format needed for the VORING routine
     def C14_VORING(self):
         return super()._C14_VORING_base(self._C14X, self._C14Y, self._C14Z)
     
+    # Get the Trefftz plane vortices
     def C14_TREFFTZ(self):
         C14X = self._C14X[-1, :].reshape(-1, 1)
         C14Y = self._C14Y[-1, :].reshape(-1, 1)
         C14Z = self._C14Z[-1, :].reshape(-1, 1)
         return np.hstack((C14X, C14Y, C14Z))
     
+    # Get control points in the format needed for the VORING routine
     def control_points_VORING(self, n_tiles: int):
         n_points = self._nx * self._ny
 
@@ -94,12 +111,14 @@ class WingPanels(PanelGrid):
         control_points[:, :, 0], control_points[:, :, 1], control_points[:, :, 2] = CPX, CPY, CPZ
         return control_points
     
+    # Get the Trefftz plane control points
     def control_points_TREFFTZ(self):
         CPX = self._control_pointX[-1, :].reshape(-1, 1)
         CPY = self._control_pointY[-1, :].reshape(-1, 1)
         CPZ = self._control_pointZ[-1, :].reshape(-1, 1)
         return np.hstack((CPX, CPY, CPZ))
 
+    # Get the bound vortices' midpoints as control points
     def control_points_bound_vortex(self, n_tiles: int):
         n_points = self._nx * self._ny
 
@@ -115,12 +134,14 @@ class WingPanels(PanelGrid):
         control_points[:, :, 0], control_points[:, :, 1], control_points[:, :, 2] = CPX, CPY, CPZ
         return control_points
 
+    # Get the normals for the RHS computation
     def normal_RHS(self):
         normalX = self._normalX.reshape(-1, 1)
         normalY = self._normalY.reshape(-1, 1)
         normalZ = self._normalZ.reshape(-1, 1)
         return np.hstack((normalX, normalY, normalZ))
     
+    # Get the normals in the format needed for the VORING routine
     def normal_VORING(self, n_tiles: int):
         n_panels = self._nx * self._ny
 
@@ -132,6 +153,7 @@ class WingPanels(PanelGrid):
         normals[:, :, 0], normals[:, :, 1], normals[:, :, 2] = NX, NY, NZ
         return normals
     
+    # Get the normals of the Trefftz plane panels
     def normal_TREFFTZ(self):
         normalY = self._normalY[-1, :].reshape(-1, 1)
         normalZ = self._normalZ[-1, :].reshape(-1, 1)
@@ -139,6 +161,7 @@ class WingPanels(PanelGrid):
 
         return normals / np.linalg.norm(normals, axis=1).reshape(-1, 1)
 
+    # Plot the mesh
     def plot_mesh(self, ax: Axes3D):
         if self._sym:
             x_sym = np.hstack([np.flip(self._points.X, axis=1), self._points.X[:, 1:]])
