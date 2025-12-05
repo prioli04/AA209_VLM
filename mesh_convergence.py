@@ -32,7 +32,7 @@ def init_sim(nx: int, ny: int, disc_type_x: DiscretizationType, disc_type_y: Dis
 n_panels = []
 CL_uniform, CL_cosine, CL_cosine_sine = [], [], []
 
-for i in range(1, 22, 2):
+for i in range(2, 23, 2):
     # Number of panels in the wing
     nx = i
     ny = nx * 2
@@ -48,16 +48,16 @@ for i in range(1, 22, 2):
     result_cosine, _ = solver_cosine.solve()
     result_cosine_sine, _ = solver_cosine_sine.solve()
 
-    CL_uniform.append(result_uniform.coefs_3D.CL)
-    CL_cosine.append(result_cosine.coefs_3D.CL)
-    CL_cosine_sine.append(result_cosine_sine.coefs_3D.CL)
+    CL_uniform.append(result_uniform.efficiency)
+    CL_cosine.append(result_cosine.efficiency)
+    CL_cosine_sine.append(result_cosine_sine.efficiency)
 
 # Plots
 plt.figure()
 plt.grid()
 plt.xlabel("Number of panels")
-plt.ylabel("CL [-]")
-plt.title("Convergence of lift coefficient")
+plt.ylabel("e [-]")
+plt.title("Convergence of span efficiency")
 
 plt.plot(n_panels, CL_uniform, label="Spacing: Uniform")
 plt.plot(n_panels, CL_cosine, label="Spacing: Cosine chordwise; Uniform spanwise")

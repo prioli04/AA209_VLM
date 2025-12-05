@@ -32,7 +32,7 @@ def init_sim(x_off: float, AR: float):
 x_off_30 = 0.5 * np.tan(np.deg2rad(30.0)) # x_offset = 0.5*b * tan(Lambda); b=1 is used in this example
 x_off_45 = 0.5 * np.tan(np.deg2rad(45.0))
 
-ARs = np.linspace(1.0, 7.0, 10)
+ARs = np.linspace(0.2, 7.0, 10)
 CL_alfas_0, CL_alfas_30, CL_alfas_45 = [], [], []
 
 for AR in ARs:
@@ -50,6 +50,12 @@ for AR in ARs:
     CL_alfas_30.append(result_30.coefs_3D.CL / np.deg2rad(5.0)) 
     CL_alfas_45.append(result_45.coefs_3D.CL / np.deg2rad(5.0)) 
 
+a0 = 2.0 * np.pi
+M = 0.0
+
+# Subsonic CLalfa estimation accounting for sweep, straight taper and Mach effects (Lowry; Polhamus, 1957)
+CLalfa_general = lambda LamdbaC2_rad: a0 * ARs / ((a0 / np.pi) + np.sqrt((a0 / np.pi)**2 + (ARs / np.cos(LamdbaC2_rad))**2 - (ARs * M)**2))
+
 # Plots
 plt.figure()
 plt.grid()
@@ -57,9 +63,13 @@ plt.xlabel("AR [-]")
 plt.ylabel(r"$CL_\alpha$ [1/rad]")
 plt.title(r"Effect of LE sweep ($\Lambda$) and AR in the lift curve slope")
 
-plt.plot(ARs, CL_alfas_0, label=r"$\Lambda = 0$°")
-plt.plot(ARs, CL_alfas_30, label=r"$\Lambda = 30$°")
-plt.plot(ARs, CL_alfas_45, label=r"$\Lambda = 45$°")
+plt.plot(ARs, CL_alfas_0, "r-", label=r"$\Lambda = 0$°")
+plt.plot(ARs, CL_alfas_30, "g-", label=r"$\Lambda = 30$°")
+plt.plot(ARs, CL_alfas_45, "b-", label=r"$\Lambda = 45$°")
+plt.plot(ARs, CLalfa_general(np.deg2rad(0)), "r--", label=r"Polhamus eq. for $\Lambda_{C/2} = 0$°")
+plt.plot(ARs, CLalfa_general(np.deg2rad(30)), "g--", label=r"Polhamus eq. for $\Lambda_{C/2} = 30$°")
+plt.plot(ARs, CLalfa_general(np.deg2rad(45)), "b--", label=r"Polhamus eq. for $\Lambda_{C/2} = 45$°")
+plt.plot(ARs[:4], 0.5 * np.pi * ARs[:4], "k", label="Slender wing elliptic distribution")
 plt.legend()
 plt.savefig("Images/CL_alfa_sweep.png")
 plt.show()

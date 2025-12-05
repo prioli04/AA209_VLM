@@ -47,7 +47,7 @@ plt.figure()
 plt.grid()
 plt.xlabel("2y/b, fraction of semispan")
 plt.ylabel("Cl/CL")
-plt.title(rf"Effect of LE sweep ($\Lambda$) in the lift distribution (AR = {AR:.1f})")
+plt.title(r"Effect of 1/4 chord sweep ($\Lambda_{C/4}$)" + f" in the lift distribution (AR = {AR:.1f})")
 
 plt.plot(span_frac, Clsec_0_frac, label=r"$\Lambda = 0$°")
 plt.plot(span_frac, Clsec_45_frac, label=r"$\Lambda = 45$°")
