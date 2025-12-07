@@ -62,7 +62,7 @@ class Post:
         return self._converged
 
     # Main routine that computes the aero coefficients based on the vortices' intensities (Gammas)
-    def compute_coefficients(self, Gammas: np.ndarray, plot=False):
+    def compute_coefficients(self, Gammas: np.ndarray, Cd_p: np.ndarray, plot=False):
         S_ref = 0.5 * self._S if self._sym else self._S # For symmetric analysis, reference area need to be half of the provided
         w_ind = self._B_trefftz @ Gammas[-1, :].T # Compute downwash in the Trefftz plane. Equation 5.81 of (Drela)
 
@@ -122,10 +122,14 @@ class Post:
         # 3D force coefficients
         CL = np.sum(delta_L) / (self._q_inf * S_ref)
         CY = np.sum(delta_Y) / (self._q_inf * S_ref) if not self._sym else 0.0
-        CD = np.sum(delta_Di) / (self._q_inf * S_ref)
+
+        # Compute full drag coefficient
+        Dp_sec = self._q_inf * self._delta_y * self._chords * Cd_p # Parasite drag per section 
+        CDp = np.sum(Dp_sec) / (self._q_inf * S_ref) # Parasite drag coefficient 
+        CD = (np.sum(delta_Di)) / (self._q_inf * S_ref) + CDp
 
         coefs_3D = Result.Coefs_3D(CL, CD, CY, CMl, CM, CN)
-        self._result.update(self._y_sec, Cl_sec, Cd_sec, coefs_3D, self._AR) # Update the results
+        self._result.update(self._y_sec, Cl_sec, CDp, coefs_3D, self._AR) # Update the results
         self._check_convergence()
 
         if plot:
@@ -136,19 +140,13 @@ class Post:
         ny = Gammas.shape[1]
         delta_L = np.zeros(ny)
         Cl_sec = np.zeros(ny)
-        Cm_sec = np.zeros(ny)
 
         for j in range(ny):
             # Computation in the Trefftz plane
             delta_L[j] = self._rho * self._V_inf * Gammas[-1, j] * self._delta_y[j]
             Cl_sec[j] = delta_L[j] / (0.5 * self._rho * self._V_inf**2 * self._delta_y[j] * self._chords[j])
 
-            # Compute moment coefficient at the 1/4 chord. Combining equations 11.11 and 11.13 from (Katz, Plotkin)
-            for i in range(Gammas.shape[0]):
-                g = Gammas[i, j] - Gammas[i - 1, j] if i > 0 else Gammas[0, j]
-                Cm_sec[j] = -2.0 * np.cos(0.0) * np.sum(g * (self._C14_x[:, j] - 0.25 * self._chords[j])) / (self._V_inf * self._chords[j]**2)
-
-        return Cl_sec, Cm_sec
+        return Cl_sec
 
     # Plot Cl distribution in the Trefftz plane
     def _plot_trefftz(self):

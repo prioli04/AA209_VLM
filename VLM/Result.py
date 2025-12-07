@@ -22,7 +22,7 @@ class Result:
     def __init__(self):
         self.y_sec = np.empty(0) # y coordinates of each section
         self.Cl_sec = np.empty(0) # Sectional lift coefficient distribution
-        self.Cd_sec = np.empty(0) # Sectional drag coefficient distribution
+        self.CDp = 0.0 # Parasite drag coefficient
         self.coefs_3D_prev = Result.Coefs_3D() # Previous iteration 3D coefficients
         self.coefs_3D = Result.Coefs_3D() # Current iteration 3D coefficients
         self.residuals = Result.Coefs_3D() # 3D coefficients residuals
@@ -42,9 +42,10 @@ class Result:
         self.residuals = Result.Coefs_3D(CL_res, CD_res, CY_res, CMl_res, CM_res, CN_res)
     
     # Update results with current iteration coefficients
-    def update(self, y_sec: np.ndarray, Cl_sec: np.ndarray, Cd_sec: np.ndarray, coefs_3D: Coefs_3D, AR: float):
+    def update(self, y_sec: np.ndarray, Cl_sec: np.ndarray, CDp: float, coefs_3D: Coefs_3D, AR: float):
         self.y_sec = y_sec
-        self.Cl_sec, self.Cd_sec = Cl_sec, Cd_sec
+        self.Cl_sec = Cl_sec
+        self.CDp = CDp
         self.CL_CD = coefs_3D.CL / coefs_3D.CD
         self.efficiency = coefs_3D.CL**2 / (coefs_3D.CD * np.pi * AR)
 
@@ -57,7 +58,7 @@ class Result:
         fields = {
             "CL": self.coefs_3D.CL, "CD": self.coefs_3D.CD, "CM": self.coefs_3D.CM,
             "CY": self.coefs_3D.CY, "CMl": self.coefs_3D.CMl, "CN": self.coefs_3D.CN,
-            "CL/CD": self.CL_CD, "Efficiency": self.efficiency
+            "CL/CD": self.CL_CD, "Efficiency": self.efficiency, "CDp": self.CDp
         }
 
         N = len(fields) + 1

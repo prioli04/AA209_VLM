@@ -10,12 +10,12 @@ class Airfoil:
         self._x_camber, self._y_camber = self._compute_camber_line() # Compute the camber line
 
         # Viscous data initialization (for decambering routine)
-        self._alfa_visc, self._Cl_visc, self._Cm_visc, self._alfa0 = np.empty(0), np.empty(0), np.empty(0), 0.0
+        self._alfa_visc, self._Cl_visc, self._Cd_visc, self._alfa0 = np.empty(0), np.empty(0), np.empty(0), 0.0
         self._viscous_data = False
 
         # Read xfoil data if the file is specified
         if xfoil_path is not None:
-            self._alfa_visc, self._Cl_visc, self._Cm_visc, self._alfa0 = self._read_xfoil(xfoil_path)
+            self._alfa_visc, self._Cl_visc, self._Cd_visc, self._alfa0 = self._read_xfoil(xfoil_path)
             self._viscous_data = True
 
     # Function that splits a list of (x, y) coordinates into upper and lower surface
@@ -88,7 +88,7 @@ class Airfoil:
 
         found_params, found_results = False, False
         alfa_id, cl_id, cm_id = 0, 0, 0
-        alfas, Cls, Cms = np.empty(0), np.empty(0), np.empty(0)
+        alfas, Cls, Cds = np.empty(0), np.empty(0), np.empty(0)
 
         for line in lines:
             line = line.strip() # Remove all leading and trailing whitespaces and linebreaks
@@ -100,7 +100,7 @@ class Airfoil:
                 try:
                     alfas = np.hstack([alfas, float(tokens[alfa_id])]) 
                     Cls = np.hstack([Cls, float(tokens[cl_id])]) 
-                    Cms = np.hstack([Cms, float(tokens[cm_id])]) 
+                    Cds = np.hstack([Cds, float(tokens[cd_id])]) 
 
                 except ValueError:
                     raise ValueError("Could not parse result values. Check file provided!")
@@ -124,7 +124,7 @@ class Airfoil:
                     # Find the column id of the variables needed
                     alfa_id = tokens.index("alpha")
                     cl_id = tokens.index("CL")
-                    cm_id = tokens.index("CM")
+                    cd_id = tokens.index("CD")
 
                 except ValueError:
                     raise ValueError("Could not find alfa or Cl columns. Check file provided!")
@@ -138,7 +138,7 @@ class Airfoil:
             raise ValueError("Could not find results. Check file provided")
 
         alfa0 = self._compute_alfa0(alfas, Cls) # Compute the zero lift angle of attack
-        return alfas, Cls, Cms, alfa0
+        return alfas, Cls, Cds, alfa0
 
     # Function for computing the zero lift angle of attack
     def _compute_alfa0(self, alfa_visc: np.ndarray, Cl_visc: np.ndarray):
@@ -168,7 +168,7 @@ class Airfoil:
     
     # Getter for the viscous data
     def get_visc_coefs(self):
-        return self._alfa_visc, self._Cl_visc, self._Cm_visc, self._alfa0
+        return self._alfa_visc, self._Cl_visc, self._Cd_visc, self._alfa0
         
     # Flag for indicating if viscous data was provided
     def has_viscous_data(self):

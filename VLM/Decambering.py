@@ -19,7 +19,7 @@ class Decambering:
 
         self._alfa_visc: List[np.ndarray] = []
         self._Cl_visc: List[np.ndarray] = []
-        self._Cm_visc: List[np.ndarray] = []
+        self._Cd_visc: List[np.ndarray] = []
         self._alfa0: List[float] = []
 
         for airfoil in airfoils:
@@ -28,10 +28,10 @@ class Decambering:
                 raise ValueError("Decambering is activated but not all airfoils have viscous data.")
 
             # Get an airfoil's viscous data
-            alfa_visc, Cl_visc, Cm_visc, alfa0 = airfoil.get_visc_coefs()
+            alfa_visc, Cl_visc, Cd_visc, alfa0 = airfoil.get_visc_coefs()
             self._alfa_visc.append(alfa_visc)
             self._Cl_visc.append(Cl_visc)
-            self._Cm_visc.append(Cm_visc)
+            self._Cd_visc.append(Cd_visc)
             self._alfa0.append(alfa0)
 
         self._delta = np.zeros(len(self._airfoil_ids)) if delta_init_vals is None else delta_init_vals
@@ -42,11 +42,11 @@ class Decambering:
         foil_id = self._airfoil_ids[sec_id] # Resolves the airfoil of a given section
         return np.interp(alfa_deg, self._alfa_visc[foil_id], self._Cl_visc[foil_id])
     
-    # Interpolate the viscous Cm for a given angle of attack
+    # Interpolate the viscous Cd for a given angle of attack
     # If outside of range, extrapolation just holds the first or last value in the data (depending on which side of the data 'alfa_deg' is)
-    def _interpolate_visc_Cm(self, alfa_deg: np.ndarray, sec_id: int):
+    def _interpolate_visc_Cd(self, alfa_deg: np.ndarray, sec_id: int):
         foil_id = self._airfoil_ids[sec_id]
-        return np.interp(alfa_deg, self._alfa_visc[foil_id], self._Cm_visc[foil_id])
+        return np.interp(alfa_deg, self._alfa_visc[foil_id], self._Cd_visc[foil_id])
     
     # Compute the effective angle of attack based on thin airfoil theory and corrected by the decambering angle
     def compute_effective_alfas(self, Cl_sec: np.ndarray):
@@ -61,6 +61,15 @@ class Decambering:
         
         return Cl_visc - Cl_sec # Residual, from step 4 of main reference algorithm
     
+    # Return 2d drag coefficient based on the section angle of attack
+    def get_parasite_Cd(self, alfa_sec: np.ndarray):
+        Cd = np.zeros(len(alfa_sec))
+
+        for i in range(len(alfa_sec)):
+            Cd[i] = self._interpolate_visc_Cd(np.rad2deg(alfa_sec[i]), i) # Get Cd value interpolated
+        
+        return Cd
+
     # Rotate normals by the decambering angle
     def decamber_normals(self, normals: np.ndarray):
         # Split x, y, z components and align columns by panel strips

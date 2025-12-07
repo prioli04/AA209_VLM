@@ -48,18 +48,20 @@ class Solver:
         while not self._post.is_converged():
             # Solve [AIC][Gammas] = [RHS]. Step 'e' of section 12.3 of (Katz, Plotkin)
             Gammas = self._solve_linear_system(decambering=self._params.decambering) 
-            self._post.compute_coefficients(Gammas) # Post-process results
-            self._post.print_results() # Print results
+            Cd_p = np.zeros(self._wing_ny)
                 
             if self._params.decambering:
-                Gammas = self._decamber_wing(Gammas) # Run the decambering routine
+                Gammas, Cd_p = self._decamber_wing(Gammas) # Run the decambering routine
 
             if self._wake_panels is not None:
                 self._wake_panels.wake_rollup(self._wing_C14X, self._wing_C14Y, self._wing_C14Z, Gammas, d_wake) # Update wake in the time stepping model
 
+            self._post.compute_coefficients(Gammas, Cd_p) # Post-process results
+            self._post.print_results() # Print results
+
         # Plot results
         if plot:
-            self._post.compute_coefficients(Gammas, plot=True)
+            self._post.compute_coefficients(Gammas, Cd_p, plot=True)
             self._post.plot_delta(self._decambering._delta)
 
         return self._post.export_results(), self._decambering._delta
@@ -136,7 +138,7 @@ class Solver:
         delta_Cl = np.inf * np.ones((self._wing_ny, 1))
 
         while np.linalg.norm(delta_Cl) > self._params.decamb_Cl_tol and iter < self._params.decamb_max_iter:
-            Cl_sec, _ = self._post.compute_coefficients_decambering(Gammas)
+            Cl_sec = self._post.compute_coefficients_decambering(Gammas)
             alfa_eff = self._decambering.compute_effective_alfas(Cl_sec) # Compute effective angle of attack
             delta_Cl = self._decambering.compute_residuals(alfa_eff, Cl_sec) # Compute Cl residuals
 
@@ -144,7 +146,8 @@ class Solver:
             Gammas = self._solve_linear_system(decambering=True) # Re-solve the linear system
             iter += 1
 
-        return Gammas
+        Cd_p = self._decambering.get_parasite_Cd(alfa_eff) # Compute 2D drag coefficient based on the section angle of attack
+        return Gammas, Cd_p
     
     # Compute induced velocities for considering 2D point vortices
     @staticmethod
